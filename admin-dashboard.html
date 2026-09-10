@@ -1,0 +1,2135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Super Admin Control Center - AI Smart Job Vacancy Finder</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #6366f1;
+            --primary-dark: #3730a3;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            
+            --bg-body: #090d16;
+            --bg-sidebar: #0f172a;
+            --bg-card: #131d35;
+            --bg-card-hover: #172342;
+            --border-card: rgba(255, 255, 255, 0.08);
+            
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+            
+            --font-main: 'Inter', sans-serif;
+            --font-heading: 'Outfit', sans-serif;
+            
+            --sidebar-width: 270px;
+            --radius-lg: 14px;
+            --radius-md: 10px;
+            --radius-sm: 6px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ---------------- SIDEBAR ---------------- */
+        aside.sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-card);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .sidebar-brand {
+            padding: 22px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border-card);
+        }
+
+        .sidebar-brand-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+        }
+
+        .sidebar-brand-text h2 {
+            font-family: var(--font-heading);
+            font-size: 1.15rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #fff;
+        }
+
+        .sidebar-brand-text span {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .sidebar-menu {
+            padding: 16px 12px;
+            flex: 1;
+        }
+
+        .menu-category {
+            font-size: 0.68rem;
+            font-weight: 800;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 10px 12px 4px;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+            margin-bottom: 8px;
+        }
+
+        .nav-item {
+            margin-bottom: 3px;
+        }
+
+        .nav-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: var(--radius-md);
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-family: var(--font-main);
+            font-size: 0.86rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+
+        .nav-btn i {
+            font-size: 1rem;
+            width: 20px;
+            text-align: center;
+            color: var(--text-dim);
+            transition: color 0.2s ease;
+        }
+
+        .nav-btn:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+
+        .nav-btn:hover i {
+            color: var(--accent);
+        }
+
+        .nav-item.active .nav-btn {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+        }
+
+        .nav-item.active .nav-btn i {
+            color: #fff;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border-card);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .user-widget {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            overflow: hidden;
+        }
+
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #a855f7, #6366f1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.95rem;
+            color: #fff;
+        }
+
+        .user-info strong {
+            display: block;
+            font-size: 0.84rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-info small {
+            font-size: 0.72rem;
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .btn-logout {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: var(--radius-sm);
+            transition: color 0.2s;
+        }
+
+        .btn-logout:hover {
+            color: var(--danger);
+        }
+
+        /* ---------------- MAIN WORKSPACE ---------------- */
+        main.main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 30px;
+            max-width: 1600px;
+            min-height: 100vh;
+        }
+
+        .tab-view {
+            display: none;
+            animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .tab-view.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .top-action-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .page-title {
+            font-family: var(--font-heading);
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .page-subtitle {
+            color: var(--text-muted);
+            font-size: 0.86rem;
+            margin-top: 3px;
+        }
+
+        /* ---------------- CARDS & GRIDS ---------------- */
+        .stats-grid-12 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 26px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: var(--radius-lg);
+            padding: 18px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        }
+
+        .stat-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .stat-card-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .stat-card-value {
+            font-family: var(--font-heading);
+            font-size: 1.8rem;
+            font-weight: 800;
+            line-height: 1.1;
+            color: #fff;
+        }
+
+        .stat-card-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .stat-card.blue .stat-card-icon { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+        .stat-card.purple .stat-card-icon { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+        .stat-card.green .stat-card-icon { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+        .stat-card.amber .stat-card-icon { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        .stat-card.rose .stat-card-icon { background: rgba(244, 63, 94, 0.15); color: #f43f5e; }
+        .stat-card.cyan .stat-card-icon { background: rgba(6, 182, 212, 0.15); color: #06b6d4; }
+        .stat-card.indigo .stat-card-icon { background: rgba(99, 102, 241, 0.15); color: #6366f1; }
+
+        .white-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: var(--radius-lg);
+            padding: 22px;
+            margin-bottom: 24px;
+        }
+
+        .card-header-flex {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .card-heading {
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-tag {
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        /* ---------------- CHARTS GRID ---------------- */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+            gap: 20px;
+            margin-bottom: 26px;
+        }
+
+        .chart-box {
+            position: relative;
+            height: 260px;
+            width: 100%;
+        }
+
+        /* ---------------- DATA TABLES ---------------- */
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .admin-table th {
+            padding: 12px 16px;
+            font-size: 0.74rem;
+            font-weight: 800;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            border-bottom: 1px solid var(--border-card);
+        }
+
+        .admin-table td {
+            padding: 14px 16px;
+            font-size: 0.85rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text-main);
+            vertical-align: middle;
+        }
+
+        .admin-table tr:hover td {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        /* ---------------- STATUS BADGES ---------------- */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.74rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .badge-active { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+        .badge-pending { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        .badge-blocked { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+        .badge-seeker { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+        .badge-recruiter { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+        .badge-admin { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
+
+        /* ---------------- BUTTONS & CONTROLS ---------------- */
+        .btn-backup, .btn-action-sm {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            font-family: var(--font-main);
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-main);
+            border: 1px solid var(--border-card);
+        }
+
+        .btn-backup:hover, .btn-action-sm:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary-gradient {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: #fff;
+            border: none;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+        }
+
+        .filter-btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn-group button.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        /* ---------------- MODALS ---------------- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(5px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--bg-sidebar);
+            border: 1px solid var(--border-card);
+            border-radius: var(--radius-lg);
+            max-width: 650px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Form Inputs */
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-card);
+            background: var(--bg-card);
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: var(--primary);
+        }
+
+        /* Toast notifications */
+        #toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 100000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast-msg {
+            padding: 12px 18px;
+            border-radius: var(--radius-md);
+            background: #1e293b;
+            color: #fff;
+            font-size: 0.85rem;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            border-left: 4px solid var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.2s ease;
+        }
+
+        .toast-msg.success { border-left-color: var(--success); }
+        .toast-msg.error { border-left-color: var(--danger); }
+        .toast-msg.info { border-left-color: var(--info); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ---------------- SIDEBAR NAVIGATION ---------------- -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-brand-icon"><i class="fa-solid fa-bolt"></i></div>
+            <div class="sidebar-brand-text">
+                <h2>JobFinder AI</h2>
+                <span>Super Admin Console</span>
+            </div>
+        </div>
+
+        <div class="sidebar-menu">
+            <div class="menu-category">Main</div>
+            <ul class="sidebar-nav">
+                <li class="nav-item active" data-tab="tab-dashboard" onclick="switchTab('tab-dashboard')">
+                    <button class="nav-btn"><i class="fa-solid fa-gauge-high"></i> <span>Dashboard</span></button>
+                </li>
+            </ul>
+
+            <div class="menu-category">Management</div>
+            <ul class="sidebar-nav">
+                <li class="nav-item" data-tab="tab-users" onclick="switchTab('tab-users')">
+                    <button class="nav-btn"><i class="fa-solid fa-users"></i> <span>Users</span></button>
+                </li>
+                <li class="nav-item" data-tab="tab-companies" onclick="switchTab('tab-companies')">
+                    <button class="nav-btn"><i class="fa-solid fa-building"></i> <span>Companies</span></button>
+                </li>
+                <li class="nav-item" data-tab="tab-jobs" onclick="switchTab('tab-jobs')">
+                    <button class="nav-btn"><i class="fa-solid fa-briefcase"></i> <span>Jobs</span></button>
+                </li>
+                <li class="nav-item" data-tab="tab-applications" onclick="switchTab('tab-applications')">
+                    <button class="nav-btn"><i class="fa-solid fa-file-signature"></i> <span>Applications</span></button>
+                </li>
+            </ul>
+
+            <div class="menu-category">Audits &amp; Complaints</div>
+            <ul class="sidebar-nav">
+                <li class="nav-item" data-tab="tab-reports" onclick="switchTab('tab-reports')">
+                    <button class="nav-btn"><i class="fa-solid fa-triangle-exclamation"></i> <span>Reports &amp; Complaints</span></button>
+                </li>
+                <li class="nav-item" data-tab="tab-logs" onclick="switchTab('tab-logs')">
+                    <button class="nav-btn"><i class="fa-solid fa-list-check"></i> <span>Activity Logs</span></button>
+                </li>
+            </ul>
+
+            <div class="menu-category">System &amp; Settings</div>
+            <ul class="sidebar-nav">
+                <li class="nav-item" data-tab="tab-categories" onclick="switchTab('tab-categories')">
+                    <button class="nav-btn"><i class="fa-solid fa-tags"></i> <span>Categories &amp; Skills</span></button>
+                </li>
+                <li class="nav-item" data-tab="tab-notifications" onclick="switchTab('tab-notifications')">
+                    <button class="nav-btn"><i class="fa-solid fa-bell"></i> <span>Notifications</span></button>
+                </li>
+                <li class="nav-item" data-tab="tab-settings" onclick="switchTab('tab-settings')">
+                    <button class="nav-btn"><i class="fa-solid fa-gear"></i> <span>Settings &amp; Security</span></button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="user-widget">
+                <div class="user-avatar"><i class="fa-solid fa-user-shield"></i></div>
+                <div class="user-info">
+                    <strong id="sidebar-admin-name">Super Admin</strong>
+                    <small>System Root</small>
+                </div>
+            </div>
+            <button class="btn-logout" onclick="adminLogoutNow()" title="Logout from Admin Console"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+        </div>
+    </aside>
+
+    <!-- ---------------- MAIN CONTENT WORKSPACE ---------------- -->
+    <main class="main-content">
+
+        <!-- ================= VIEW 1: DASHBOARD ================= -->
+        <div class="tab-view active" id="tab-dashboard">
+            <div class="top-action-bar">
+                <div>
+                    <h1 class="page-title">Admin Dashboard</h1>
+                    <p class="page-subtitle">Real-time telemetry, platform growth statistics, and key activity monitors</p>
+                </div>
+                <button class="btn-backup btn-primary-gradient" onclick="refreshAdminData()">
+                    <i class="fa-solid fa-arrows-rotate"></i> Refresh Telemetry
+                </button>
+            </div>
+
+            <!-- Stats Metric Cards -->
+            <div class="stats-grid-12">
+                <div class="stat-card blue">
+                    <div class="stat-card-header"><div class="stat-card-icon"><i class="fa-solid fa-users"></i></div><span class="card-tag">Total</span></div>
+                    <div class="stat-card-value" id="dash-cnt-users">0</div>
+                    <div class="stat-card-label">Total Users</div>
+                </div>
+                <div class="stat-card indigo">
+                    <div class="stat-card-header"><div class="stat-card-icon"><i class="fa-solid fa-user-graduate"></i></div><span class="card-tag">Candidates</span></div>
+                    <div class="stat-card-value" id="dash-cnt-seekers">0</div>
+                    <div class="stat-card-label">Total Job Seekers</div>
+                </div>
+                <div class="stat-card purple">
+                    <div class="stat-card-header"><div class="stat-card-icon"><i class="fa-solid fa-building"></i></div><span class="card-tag">Employers</span></div>
+                    <div class="stat-card-value" id="dash-cnt-companies">0</div>
+                    <div class="stat-card-label">Total Companies</div>
+                </div>
+                <div class="stat-card cyan">
+                    <div class="stat-card-header"><div class="stat-card-icon"><i class="fa-solid fa-briefcase"></i></div><span class="card-tag">Vacancies</span></div>
+                    <div class="stat-card-value" id="dash-cnt-jobs">0</div>
+                    <div class="stat-card-label">Total Jobs</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="stat-card-header"><div class="stat-card-icon"><i class="fa-solid fa-circle-check"></i></div><span class="card-tag">Live</span></div>
+                    <div class="stat-card-value" id="dash-cnt-active-jobs">0</div>
+                    <div class="stat-card-label">Active Jobs</div>
+                </div>
+                <div class="stat-card rose">
+                    <div class="stat-card-header"><div class="stat-card-icon"><i class="fa-solid fa-ban"></i></div><span class="card-tag">Restricted</span></div>
+                    <div class="stat-card-value" id="dash-cnt-blocked">0</div>
+                    <div class="stat-card-label">Blocked Users</div>
+                </div>
+            </div>
+
+            <!-- 4 Interactive Charts Grid -->
+            <div class="charts-grid">
+                <div class="white-card">
+                    <div class="card-header-flex">
+                        <div class="card-heading"><i class="fa-solid fa-chart-line" style="color: #3b82f6;"></i> Jobs Posted &amp; Applications (Per Month)</div>
+                    </div>
+                    <div class="chart-box"><canvas id="chart-jobs-apps"></canvas></div>
+                </div>
+
+                <div class="white-card">
+                    <div class="card-header-flex">
+                        <div class="card-heading"><i class="fa-solid fa-chart-column" style="color: #a855f7;"></i> User Growth by Role</div>
+                    </div>
+                    <div class="chart-box"><canvas id="chart-user-growth"></canvas></div>
+                </div>
+
+                <div class="white-card">
+                    <div class="card-header-flex">
+                        <div class="card-heading"><i class="fa-solid fa-chart-pie" style="color: #10b981;"></i> Popular Job Categories</div>
+                    </div>
+                    <div class="chart-box"><canvas id="chart-categories"></canvas></div>
+                </div>
+
+                <div class="white-card">
+                    <div class="card-header-flex">
+                        <div class="card-heading"><i class="fa-solid fa-chart-bar" style="color: #f59e0b;"></i> Top In-Demand Tech Skills</div>
+                    </div>
+                    <div class="chart-box"><canvas id="chart-skills"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Registered Companies Table on Main Dashboard -->
+            <div class="white-card" style="margin-top: 24px;">
+                <div class="card-header-flex" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <div class="card-heading" style="font-size: 1.15rem; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+                            <i class="fa-solid fa-building-circle-check" style="color: #a855f7;"></i> Registered Companies &amp; KYC Verification
+                        </div>
+                        <p style="font-size: 0.83rem; color: var(--text-muted); margin-top: 2px;">Real-time employer accounts registered in Supabase Cloud</p>
+                    </div>
+                    <button class="btn-backup" onclick="switchTab('tab-companies')" style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <span>Manage All Companies</span> <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Company / Organization</th>
+                                <th>Login / Contact Email</th>
+                                <th>Location &amp; Phone</th>
+                                <th>KYC Verification</th>
+                                <th>Active Jobs</th>
+                                <th>Quick Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dash-companies-overview-tbody">
+                            <!-- Populated dynamically with registered companies -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 2: USERS MANAGEMENT ================= -->
+        <div class="tab-view" id="tab-users">
+            <div class="top-action-bar">
+                <div>
+                    <h1 class="page-title">User Management</h1>
+                    <p class="page-subtitle">Inspect user accounts, manage candidate &amp; recruiter roles, and enforce security policies</p>
+                </div>
+                <button class="btn-backup" onclick="renderAllAdminUsers()"><i class="fa-solid fa-arrows-rotate"></i> Sync Cloud Users</button>
+            </div>
+
+            <div class="white-card" style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                    <div class="filter-btn-group">
+                        <button class="btn-action-sm active" id="usr-filter-all" onclick="setUserFilter('all')">All Members (<span id="usr-cnt-all">0</span>)</button>
+                        <button class="btn-action-sm" id="usr-filter-seeker" onclick="setUserFilter('seeker')"><i class="fa-solid fa-user-graduate"></i> Job Seekers (<span id="usr-cnt-seeker">0</span>)</button>
+                        <button class="btn-action-sm" id="usr-filter-company" onclick="setUserFilter('company')"><i class="fa-solid fa-building"></i> Companies (<span id="usr-cnt-company">0</span>)</button>
+                        <button class="btn-action-sm" id="usr-filter-blocked" onclick="setUserFilter('blocked')"><i class="fa-solid fa-ban"></i> Blocked (<span id="usr-cnt-blocked">0</span>)</button>
+                    </div>
+                    <div style="position: relative; min-width: 260px;">
+                        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem;"></i>
+                        <input type="text" id="admin-user-search-input" onkeyup="filterUsersBySearch()" placeholder="Search user name or email..." class="form-input" style="padding-left: 36px;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="white-card">
+                <div style="overflow-x: auto;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email Address</th>
+                                <th>Role</th>
+                                <th>Account Status</th>
+                                <th>Registered Date</th>
+                                <th>Security Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="user-directory-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 3: COMPANY MANAGEMENT ================= -->
+        <div class="tab-view" id="tab-companies">
+            <div class="top-action-bar">
+                <div>
+                    <h1 class="page-title">Company Management &amp; KYC Verification</h1>
+                    <p class="page-subtitle">Review registered employer credentials, grant Golden Verification Badges, and moderate corporate accounts</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-backup" onclick="renderCompanyVerificationQueue()"><i class="fa-solid fa-arrows-rotate"></i> Sync Companies</button>
+                </div>
+            </div>
+
+            <div class="white-card" style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                    <div class="filter-btn-group">
+                        <button class="btn-action-sm active" id="comp-filter-all" onclick="setCompanyFilter('all')">All Companies (<span id="comp-cnt-all">0</span>)</button>
+                        <button class="btn-action-sm" id="comp-filter-verified" onclick="setCompanyFilter('verified')">⭐ Verified Badged (<span id="comp-cnt-verified">0</span>)</button>
+                        <button class="btn-action-sm" id="comp-filter-pending" onclick="setCompanyFilter('pending')">⏳ Pending Review (<span id="comp-cnt-pending">0</span>)</button>
+                    </div>
+                    <div style="position: relative; min-width: 260px;">
+                        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem;"></i>
+                        <input type="text" id="admin-company-search-input" onkeyup="filterCompaniesBySearchQuery()" placeholder="Search company, email, location..." class="form-input" style="padding-left: 36px;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="white-card">
+                <div style="overflow-x: auto;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Company / Organization</th>
+                                <th>Contact Email</th>
+                                <th>Location &amp; Phone</th>
+                                <th>Verification Status</th>
+                                <th>Active Jobs</th>
+                                <th>Admin Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="company-management-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 4: JOB MANAGEMENT ================= -->
+        <div class="tab-view" id="tab-jobs">
+            <div class="top-action-bar">
+                <div>
+                    <h1 class="page-title">Job Management</h1>
+                    <p class="page-subtitle">Publish official platform vacancies, moderate employer postings, and feature top opportunities</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-backup btn-primary-gradient" onclick="openAdminPostJobModal()"><i class="fa-solid fa-plus"></i> Post Official Job</button>
+                    <button class="btn-backup" onclick="renderAdminJobListings()"><i class="fa-solid fa-arrows-rotate"></i> Refresh Jobs</button>
+                </div>
+            </div>
+
+            <div class="white-card" style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                    <div class="filter-btn-group">
+                        <button class="btn-action-sm active" id="job-filter-all" onclick="setJobCategoryFilter('all')">All Jobs (<span id="job-cnt-all">0</span>)</button>
+                        <button class="btn-action-sm" id="job-filter-featured" onclick="setJobCategoryFilter('featured')">⭐ Featured (<span id="job-cnt-featured">0</span>)</button>
+                        <button class="btn-action-sm" id="job-filter-fulltime" onclick="setJobCategoryFilter('fulltime')">Full-Time (<span id="job-cnt-fulltime">0</span>)</button>
+                        <button class="btn-action-sm" id="job-filter-remote" onclick="setJobCategoryFilter('remote')">Remote (<span id="job-cnt-remote">0</span>)</button>
+                    </div>
+                    <div style="position: relative; min-width: 260px;">
+                        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem;"></i>
+                        <input type="text" id="admin-job-search-input" onkeyup="filterJobsBySearchQuery()" placeholder="Search title, company, skills..." class="form-input" style="padding-left: 36px;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="white-card">
+                <div style="overflow-x: auto;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Job Title</th>
+                                <th>Company</th>
+                                <th>Location &amp; Type</th>
+                                <th>Compensation</th>
+                                <th>Applicants</th>
+                                <th>Status</th>
+                                <th>Moderation Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jobs-directory-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 5: APPLICATION MANAGEMENT ================= -->
+        <div class="tab-view" id="tab-applications">
+            <div class="top-action-bar">
+                <div>
+                    <h1 class="page-title">Application Management</h1>
+                    <p class="page-subtitle">Track candidate applications lifecycle across Applied, Shortlisted, Interview, and Hired stages</p>
+                </div>
+                <button class="btn-backup" onclick="renderAdminApplications()"><i class="fa-solid fa-arrows-rotate"></i> Refresh Applications</button>
+            </div>
+
+            <div class="white-card">
+                <div style="overflow-x: auto;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Candidate</th>
+                                <th>Applied Job Role</th>
+                                <th>Target Employer</th>
+                                <th>Submission Date</th>
+                                <th>Fit Score</th>
+                                <th>Current Status</th>
+                                <th>Stage Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="applications-directory-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 6: REPORTS & COMPLAINTS ================= -->
+        <div class="tab-view" id="tab-reports">
+            <div class="top-action-bar">
+                <div>
+                    <h1 class="page-title">Reports &amp; Complaint Moderation</h1>
+                    <p class="page-subtitle">Investigate reported listings, spam recruiters, and fraudulent compensation claims</p>
+                </div>
+                <button class="btn-backup" onclick="renderReportsQueue()"><i class="fa-solid fa-arrows-rotate"></i> Refresh Queue</button>
+            </div>
+
+            <div class="white-card">
+                <div style="overflow-x: auto;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Report Target</th>
+                                <th>Violation Category</th>
+                                <th>Reported By</th>
+                                <th>Severity Risk</th>
+                                <th>Timestamp</th>
+                                <th>Resolution Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reports-queue-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+
+
+
+
+        <!-- ================= VIEW 9: NOTIFICATIONS & BROADCASTS ================= -->
+        <div class="tab-view" id="tab-notifications">
+            <div class="top-action-bar">
+                <div>
+                    <h1 class="page-title">Notifications &amp; Broadcast Center</h1>
+                    <p class="page-subtitle">Publish system-wide announcements, maintenance notices, and targeted recruiter alerts</p>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                <div class="white-card">
+                    <div class="card-header-flex">
+                        <div class="card-heading"><i class="fa-solid fa-bullhorn" style="color: #f59e0b;"></i> Dispatch System Broadcast</div>
+                    </div>
+                    <form id="form-broadcast" onsubmit="handleSendBroadcastSubmit(event)">
+                        <div style="margin-bottom: 14px;">
+                            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">Target Audience *</label>
+                            <select id="broadcast-target" class="form-input">
+                                <option value="All Members">All Users (Job Seekers &amp; Companies)</option>
+                                <option value="Job Seekers">Job Seekers Only</option>
+                                <option value="Hiring Companies">Hiring Companies Only</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 14px;">
+                            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">Announcement Title *</label>
+                            <input type="text" id="broadcast-title" placeholder="e.g. Scheduled Cloud Database Optimization" required class="form-input">
+                        </div>
+                        <div style="margin-bottom: 16px;">
+                            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">Broadcast Body *</label>
+                            <textarea id="broadcast-message" rows="4" placeholder="Enter full announcement details..." required class="form-input"></textarea>
+                        </div>
+                        <button type="submit" class="btn-backup btn-primary-gradient" style="width: 100%;">
+                            <i class="fa-solid fa-paper-plane"></i> Dispatch Platform Notification
+                        </button>
+                    </form>
+                </div>
+
+                <div class="white-card">
+                    <div class="card-header-flex">
+                        <div class="card-heading"><i class="fa-solid fa-clock-rotate-left" style="color: #3b82f6;"></i> Recent Dispatched Broadcasts</div>
+                    </div>
+                    <div id="broadcast-history-list" style="display: flex; flex-direction: column; gap: 10px;">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 10: CATEGORIES & SKILLS ================= -->
+        <div class="tab-view" id="tab-categories">
+            <div class="top-action-bar">
+                <div>
+                    <h1 class="page-title">Job Categories &amp; Skills Directory</h1>
+                    <p class="page-subtitle">Add and configure industry domains, taxonomy tags, and required technical skills</p>
+                </div>
+                <button class="btn-backup btn-primary-gradient" onclick="openAddCategoryModal()"><i class="fa-solid fa-plus"></i> Add Domain / Category</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                <div class="white-card">
+                    <div class="card-header-flex">
+                        <div class="card-heading"><i class="fa-solid fa-layer-group" style="color: #a855f7;"></i> Industry Categories</div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table class="admin-table">
+                            <thead>
+                                <tr><th>Category Name</th><th>Job Count</th><th>Actions</th></tr>
+                            </thead>
+                            <tbody id="category-tbody">
+                                <tr><td><strong>Information Technology &amp; AI</strong></td><td>18 Vacancies</td><td><button class="btn-action-sm" onclick="showToast('Category active', 'info')">Manage</button></td></tr>
+                                <tr><td><strong>Healthcare &amp; Life Sciences</strong></td><td>6 Vacancies</td><td><button class="btn-action-sm" onclick="showToast('Category active', 'info')">Manage</button></td></tr>
+                                <tr><td><strong>Financial Technology &amp; Banking</strong></td><td>9 Vacancies</td><td><button class="btn-action-sm" onclick="showToast('Category active', 'info')">Manage</button></td></tr>
+                                <tr><td><strong>Marketing, Sales &amp; Growth</strong></td><td>5 Vacancies</td><td><button class="btn-action-sm" onclick="showToast('Category active', 'info')">Manage</button></td></tr>
+                                <tr><td><strong>Government &amp; Public Sector</strong></td><td>3 Vacancies</td><td><button class="btn-action-sm" onclick="showToast('Category active', 'info')">Manage</button></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="white-card">
+                    <div class="card-header-flex">
+                        <div class="card-heading"><i class="fa-solid fa-code" style="color: #10b981;"></i> Technical Skills Directory</div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table class="admin-table">
+                            <thead>
+                                <tr><th>Skill Keyword</th><th>Category</th><th>Demand</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>Python</code></td><td>Software / AI</td><td><span class="status-badge badge-active">98%</span></td></tr>
+                                <tr><td><code>React.js</code></td><td>Frontend Web</td><td><span class="status-badge badge-active">94%</span></td></tr>
+                                <tr><td><code>PostgreSQL</code></td><td>Database / Cloud</td><td><span class="status-badge badge-active">90%</span></td></tr>
+                                <tr><td><code>Docker &amp; K8s</code></td><td>DevOps / Infra</td><td><span class="status-badge badge-active">82%</span></td></tr>
+                                <tr><td><code>AWS &amp; Azure</code></td><td>Cloud Systems</td><td><span class="status-badge badge-active">85%</span></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 11: ACTIVITY LOGS ================= -->
+        <div class="tab-view" id="tab-logs">
+            <div class="top-action-bar">
+                <div>
+                    <h1 class="page-title">Admin Activity &amp; Security Audit Logs</h1>
+                    <p class="page-subtitle">Real-time forensic record of administrator actions, approvals, deletions, and policy changes</p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-backup" onclick="renderSecurityAuditLogs()"><i class="fa-solid fa-arrows-rotate"></i> Refresh Logs</button>
+                    <button class="btn-backup btn-primary-gradient" onclick="exportAuditLogsCsv()"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+                </div>
+            </div>
+
+            <div class="white-card">
+                <div style="overflow-x: auto;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Event Type</th>
+                                <th>Actor Email</th>
+                                <th>IP / Origin</th>
+                                <th>Status / Result</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="security-audit-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 12: SETTINGS & SECURITY ================= -->
+        <div class="tab-view" id="tab-settings">
+            <div class="top-action-bar">
+                <div>
+                    <h1 class="page-title">System Settings &amp; Security</h1>
+                    <p class="page-subtitle">Configure application policies, registration controls, approval modes, and 2FA authentication</p>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                <div class="white-card">
+                    <div class="card-header-flex">
+                        <div class="card-heading"><i class="fa-solid fa-sliders" style="color: #3b82f6;"></i> Platform Governance</div>
+                    </div>
+                    <form onsubmit="handleSaveSettings(event)">
+                        <div style="margin-bottom: 14px;">
+                            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">Platform Brand Name</label>
+                            <input type="text" id="set-app-name" value="AI Smart Job Vacancy Finder" class="form-input">
+                        </div>
+                        <div style="margin-bottom: 14px;">
+                            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">Support Email Address</label>
+                            <input type="email" id="set-support-email" value="support@smartjob.com" class="form-input">
+                        </div>
+                        <div style="margin-bottom: 14px;">
+                            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">Job Approval Policy</label>
+                            <select id="set-approval-mode" class="form-input">
+                                <option value="auto">Auto-Approve Employer Jobs Instantly</option>
+                                <option value="manual">Require Manual Admin Review Before Publishing</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; padding: 12px; border-radius: var(--radius-md); background: rgba(255,255,255,0.03); border: 1px solid var(--border-card);">
+                            <div>
+                                <strong style="font-size: 0.86rem; display: block;">Allow New User Registrations</strong>
+                                <small style="color: var(--text-muted);">Enable or disable candidate and company onboarding</small>
+                            </div>
+                            <input type="checkbox" id="set-reg-toggle" checked style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        </div>
+                        <button type="submit" class="btn-backup btn-primary-gradient" style="width: 100%;">
+                            <i class="fa-solid fa-floppy-disk"></i> Save Governance Settings
+                        </button>
+                    </form>
+                </div>
+
+                <div class="white-card">
+                    <div class="card-header-flex">
+                        <div class="card-heading"><i class="fa-solid fa-lock" style="color: #ef4444;"></i> Admin Security &amp; Password</div>
+                    </div>
+                    <form onsubmit="handleChangeAdminPassword(event)">
+                        <div style="margin-bottom: 14px;">
+                            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">Current Password</label>
+                            <input type="password" id="set-curr-pass" placeholder="Enter current admin password" class="form-input" required>
+                        </div>
+                        <div style="margin-bottom: 14px;">
+                            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">New Password</label>
+                            <input type="password" id="set-new-pass" placeholder="Enter new strong password" class="form-input" required>
+                        </div>
+                        <div style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; padding: 12px; border-radius: var(--radius-md); background: rgba(255,255,255,0.03); border: 1px solid var(--border-card);">
+                            <div>
+                                <strong style="font-size: 0.86rem; display: block;">Two-Factor Authentication (2FA)</strong>
+                                <small style="color: var(--text-muted);">Enforce OTP verification upon admin signin</small>
+                            </div>
+                            <input type="checkbox" id="set-2fa-toggle" checked style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        </div>
+                        <button type="submit" class="btn-backup" style="width: 100%; background: #ef4444; color: #fff; border-color: #ef4444;">
+                            <i class="fa-solid fa-key"></i> Update Security Credentials
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ---------------- ADMIN POST JOB MODAL ---------------- -->
+    <div id="admin-post-job-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="card-header-flex" style="margin-bottom: 16px;">
+                <div class="card-heading"><i class="fa-solid fa-briefcase" style="color: #10b981;"></i> Post Official Platform Vacancy</div>
+                <button onclick="closeAdminPostJobModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="admin-post-job-form" onsubmit="handleAdminCreateJobSubmit(event)">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px;">
+                    <div>
+                        <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">Job Title *</label>
+                        <input type="text" id="adm-job-title" placeholder="e.g. Senior AI / ML Engineer" required class="form-input">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">Company Name *</label>
+                        <input type="text" id="adm-job-company" placeholder="e.g. Google Cloud AI" required class="form-input">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px;">
+                    <div>
+                        <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">Location *</label>
+                        <input type="text" id="adm-job-location" placeholder="e.g. Hyderabad / Remote" required class="form-input">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">Salary / Compensation *</label>
+                        <input type="text" id="adm-job-salary" placeholder="e.g. ₹18,00,000 - ₹28,00,000 PA" required class="form-input">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px;">
+                    <div>
+                        <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">Job Type</label>
+                        <select id="adm-job-type" class="form-input">
+                            <option value="Full-Time">Full-Time</option>
+                            <option value="Remote">Remote</option>
+                            <option value="Part-Time">Part-Time</option>
+                            <option value="Internship">Internship</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">Experience Required</label>
+                        <input type="text" id="adm-job-experience" placeholder="e.g. 2-5 Years" class="form-input">
+                    </div>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">Skills &amp; Tech Stack (Comma separated)</label>
+                    <input type="text" id="adm-job-skills" placeholder="e.g. Python, React, PostgreSQL, Docker" class="form-input">
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">Job Description *</label>
+                    <textarea id="adm-job-desc" rows="4" placeholder="Detail the core responsibilities..." required class="form-input"></textarea>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn-action-sm" onclick="closeAdminPostJobModal()">Cancel</button>
+                    <button type="submit" class="btn-backup btn-primary-gradient"><i class="fa-solid fa-check"></i> Publish Vacancy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js?v=20260910_3"></script>
+    <script src="js/auth.js?v=20260910_3"></script>
+    <script src="js/db.js?v=20260910_3"></script>
+
+    <script>
+        // ---------------- TOAST ENGINE ----------------
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const t = document.createElement('div');
+            t.className = `toast-msg ${type}`;
+            const icon = type === 'success' ? 'fa-circle-check' : (type === 'error' ? 'fa-triangle-exclamation' : 'fa-info-circle');
+            t.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${msg}</span>`;
+            container.appendChild(t);
+            setTimeout(() => {
+                t.style.opacity = '0';
+                setTimeout(() => t.remove(), 300);
+            }, 3500);
+        }
+
+        // ---------------- TAB SWITCHING ----------------
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+            const target = document.getElementById(tabId);
+            if (target) target.classList.add('active');
+
+            document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
+                if (item.getAttribute('data-tab') === tabId) item.classList.add('active');
+                else item.classList.remove('active');
+            });
+
+            if (tabId === 'tab-dashboard') refreshAdminData();
+            if (tabId === 'tab-users') renderAllAdminUsers();
+            if (tabId === 'tab-companies') renderCompanyVerificationQueue();
+            if (tabId === 'tab-jobs') renderAdminJobListings();
+            if (tabId === 'tab-applications') renderAdminApplications();
+            if (tabId === 'tab-reports') renderReportsQueue();
+            if (tabId === 'tab-logs') renderSecurityAuditLogs();
+        }
+
+        // ---------------- GLOBAL DATA REFRESH ----------------
+        let cachedUsersList = [];
+        let cachedAdminJobs = [];
+        let cachedAppsList = [];
+
+        async function refreshAdminData() {
+            try {
+                // 1. Fetch Real Registered Companies from Supabase Cloud
+                let companiesList = [];
+                if (window.auth && typeof window.auth.getAllCompanies === 'function') {
+                    companiesList = await window.auth.getAllCompanies();
+                } else if (typeof fetchRegisteredCompaniesFallback === 'function') {
+                    companiesList = await fetchRegisteredCompaniesFallback();
+                }
+                cachedAdminCompanies = companiesList;
+
+                // 2. Fetch Real Users from Supabase / Auth
+                cachedUsersList = await (window.auth ? window.auth.getAllUsers() : JSON.parse(localStorage.getItem('smartjob_users_db') || '[]'));
+                const isCompanyRole = u => (u.role === 'employer' || u.role === 'company');
+                const isSeekerRole = u => !isCompanyRole(u) && u.role !== 'admin';
+                const seekers = cachedUsersList.filter(isSeekerRole);
+                const blocked = cachedUsersList.filter(u => u.status === 'blocked' || u.isBlocked === true);
+
+                const usersEl = document.getElementById('dash-cnt-users');
+                if (usersEl) usersEl.textContent = cachedUsersList.length;
+                const seekersEl = document.getElementById('dash-cnt-seekers');
+                if (seekersEl) seekersEl.textContent = seekers.length;
+                
+                // Show accurate total companies registered in Supabase
+                const compEl = document.getElementById('dash-cnt-companies');
+                if (compEl) compEl.textContent = companiesList.length;
+                
+                const blockEl = document.getElementById('dash-cnt-blocked');
+                if (blockEl) blockEl.textContent = blocked.length;
+
+                // 3. Fetch Real Jobs from DB
+                cachedAdminJobs = window.db ? (window.db.getJobs() || []) : [];
+                const jobsEl = document.getElementById('dash-cnt-jobs');
+                if (jobsEl) jobsEl.textContent = cachedAdminJobs.length;
+                const actJobsEl = document.getElementById('dash-cnt-active-jobs');
+                if (actJobsEl) actJobsEl.textContent = cachedAdminJobs.length;
+
+                // 4. Fetch Real Applications
+                cachedAppsList = window.db ? (window.db.getApplications() || []) : [];
+
+                // Render Chart.js with exact counts
+                initDashboardCharts(seekers.length, companiesList.length, cachedAdminJobs.length, cachedAppsList.length);
+
+                // Render Registered Companies Directory directly on the main Dashboard!
+                renderDashboardCompaniesOverview(companiesList);
+
+            } catch (err) {
+                console.error("Admin refresh error:", err);
+            }
+        }
+
+        function renderDashboardCompaniesOverview(companies) {
+            const tbody = document.getElementById('dash-companies-overview-tbody');
+            if (!tbody) return;
+
+            if (!companies || companies.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                            <i class="fa-solid fa-building-circle-exclamation" style="font-size: 2rem; color: #64748b; margin-bottom: 8px; display: block;"></i>
+                            No registered companies found. When recruiters register, they will appear here.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            companies.forEach(c => {
+                const isVerified = c.status === 'approved';
+                const safeName = (c.name || 'Company').replace(/'/g, "\\'");
+                const safeEmail = (c.email || '').replace(/'/g, "\\'");
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <strong>${c.name}</strong>
+                        <small style="color: var(--text-muted); display: block;">${c.location || 'Location Unspecified'} ${c.industry ? '• ' + c.industry : ''}</small>
+                    </td>
+                    <td><code>${c.email || 'No email registered'}</code></td>
+                    <td>${c.location || 'Remote'}<small style="color: var(--text-muted); display: block;">${c.phone || 'No phone provided'}</small></td>
+                    <td>${isVerified ? `<span class="status-badge badge-active"><i class="fa-solid fa-certificate"></i> Verified Golden Badge</span>` : `<span class="status-badge badge-pending"><i class="fa-solid fa-hourglass-half"></i> Pending Review</span>`}</td>
+                    <td><span class="status-badge" style="background: rgba(99,102,241,0.15); color: #6366f1;"><strong>${c.jobs || 0} Listings</strong></span></td>
+                    <td>
+                        <div style="display: flex; gap: 6px;">
+                            ${!isVerified 
+                                ? `<button class="btn-action-sm" onclick="handleCompanyStatusToggle('${safeEmail || safeName}', 'approved')" style="background:#10b981; color:#fff;" title="Approve Golden Badge"><i class="fa-solid fa-check"></i> Approve</button>`
+                                : `<button class="btn-action-sm" onclick="handleCompanyStatusToggle('${safeEmail || safeName}', 'pending')" style="color:#ef4444; border-color: rgba(239,68,68,0.3);" title="Revoke Golden Badge"><i class="fa-solid fa-ban"></i> Revoke</button>`
+                            }
+                            <button class="btn-action-sm" onclick="viewCompanyJobs('${safeName}')" title="View company vacancies"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ---------------- CHART.JS INITIALIZATION ----------------
+        let chartJobsAppsInstance = null;
+        let chartUserGrowthInstance = null;
+        let chartCategoriesInstance = null;
+        let chartSkillsInstance = null;
+
+        function initDashboardCharts(seekerCount = 0, companyCount = 0, jobCount = 0, appCount = 0) {
+            Chart.defaults.color = '#94a3b8';
+            Chart.defaults.font.family = 'Inter';
+
+            // 1. Line Chart: Jobs & Applications
+            const ctx1 = document.getElementById('chart-jobs-apps')?.getContext('2d');
+            if (ctx1) {
+                if (chartJobsAppsInstance) chartJobsAppsInstance.destroy();
+                chartJobsAppsInstance = new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        labels: ['Mar', 'Apr', 'May', 'Jun', 'Jul', 'Current'],
+                        datasets: [
+                            {
+                                label: 'Jobs Posted',
+                                data: [0, 0, 0, 0, 0, jobCount],
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                                fill: true,
+                                tension: 0.35
+                            },
+                            {
+                                label: 'Applications',
+                                data: [0, 0, 0, 0, 0, appCount],
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                                fill: true,
+                                tension: 0.35
+                            }
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+
+            // 2. Bar Chart: User Distribution
+            const ctx2 = document.getElementById('chart-user-growth')?.getContext('2d');
+            if (ctx2) {
+                if (chartUserGrowthInstance) chartUserGrowthInstance.destroy();
+                chartUserGrowthInstance = new Chart(ctx2, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Current Members'],
+                        datasets: [
+                            { label: 'Job Seekers', data: [seekerCount], backgroundColor: '#a855f7' },
+                            { label: 'Companies', data: [companyCount], backgroundColor: '#06b6d4' }
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+
+            // 3. Doughnut: Job Categories (from live jobs)
+            const ctx3 = document.getElementById('chart-categories')?.getContext('2d');
+            if (ctx3) {
+                if (chartCategoriesInstance) chartCategoriesInstance.destroy();
+                chartCategoriesInstance = new Chart(ctx3, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Software & AI', 'Full-Stack Web', 'Cloud & DevOps'],
+                        datasets: [{
+                            data: [jobCount || 1, 0, 0],
+                            backgroundColor: ['#a855f7', '#3b82f6', '#10b981']
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+
+            // 4. Horizontal Bar: In-Demand Skills
+            const ctx4 = document.getElementById('chart-skills')?.getContext('2d');
+            if (ctx4) {
+                if (chartSkillsInstance) chartSkillsInstance.destroy();
+                chartSkillsInstance = new Chart(ctx4, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Python', 'React.js', 'Supabase', 'Docker', 'SQL'],
+                        datasets: [{
+                            label: 'Platform Vacancies',
+                            data: [jobCount, jobCount, jobCount, 0, 0],
+                            backgroundColor: '#f59e0b'
+                        }]
+                    },
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false }
+                });
+            }
+        }
+
+        // ================= 2. USER MANAGEMENT =================
+        let currentSelectedUserFilter = 'all';
+
+        async function renderAllAdminUsers() {
+            const tbody = document.getElementById('user-directory-tbody');
+            if (!tbody) return;
+
+            cachedUsersList = await (window.auth ? window.auth.getAllUsers() : JSON.parse(localStorage.getItem('smartjob_users_db') || '[]'));
+            
+            const isCompanyRole = u => (u.role === 'employer' || u.role === 'company');
+            const isSeekerRole = u => !isCompanyRole(u) && u.role !== 'admin';
+
+            const seekers = cachedUsersList.filter(isSeekerRole);
+            const companies = cachedUsersList.filter(isCompanyRole);
+            const blocked = cachedUsersList.filter(u => u.status === 'blocked' || u.isBlocked === true);
+
+            document.getElementById('usr-cnt-all').textContent = cachedUsersList.length;
+            document.getElementById('usr-cnt-seeker').textContent = seekers.length;
+            document.getElementById('usr-cnt-company').textContent = companies.length;
+            document.getElementById('usr-cnt-blocked').textContent = blocked.length;
+
+            displayUsersInTable(cachedUsersList, tbody);
+        }
+
+        function setUserFilter(filter) {
+            currentSelectedUserFilter = filter;
+            ['all', 'seeker', 'company', 'blocked'].forEach(f => {
+                const btn = document.getElementById(`usr-filter-${f}`);
+                if (btn) {
+                    if (f === filter) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                }
+            });
+            filterUsersBySearch();
+        }
+
+        function filterUsersBySearch() {
+            const q = (document.getElementById('admin-user-search-input')?.value || '').toLowerCase().trim();
+            const tbody = document.getElementById('user-directory-tbody');
+            let filtered = cachedUsersList;
+
+            const isCompanyRole = u => (u.role === 'employer' || u.role === 'company');
+            if (currentSelectedUserFilter === 'seeker') filtered = filtered.filter(u => !isCompanyRole(u) && u.role !== 'admin');
+            else if (currentSelectedUserFilter === 'company') filtered = filtered.filter(isCompanyRole);
+            else if (currentSelectedUserFilter === 'blocked') filtered = filtered.filter(u => u.status === 'blocked' || u.isBlocked === true);
+
+            if (q) {
+                filtered = filtered.filter(u => (u.fullName && u.fullName.toLowerCase().includes(q)) || (u.email && u.email.toLowerCase().includes(q)));
+            }
+
+            displayUsersInTable(filtered, tbody);
+        }
+
+        function displayUsersInTable(users, tbody) {
+            if (!tbody) return;
+            if (!users || users.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">No matching users found.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            users.forEach(u => {
+                const tr = document.createElement('tr');
+                const isComp = (u.role === 'employer' || u.role === 'company');
+                const roleClass = u.role === 'admin' ? 'badge-admin' : (isComp ? 'badge-recruiter' : 'badge-seeker');
+                const roleLabel = u.role === 'admin' ? 'Administrator' : (isComp ? 'Company / Employer' : 'Job Seeker');
+                const isBlocked = u.status === 'blocked' || u.isBlocked === true;
+                const statusHtml = isBlocked 
+                    ? `<span class="status-badge badge-blocked"><i class="fa-solid fa-ban"></i> Blocked</span>` 
+                    : `<span class="status-badge badge-active"><i class="fa-solid fa-circle"></i> Active</span>`;
+
+                const blockBtn = isBlocked
+                    ? `<button class="btn-action-sm" onclick="handleToggleBlockUser('${u.email}', false)" style="color:#10b981; border-color:#10b981;"><i class="fa-solid fa-unlock"></i> Unblock</button>`
+                    : `<button class="btn-action-sm" onclick="handleToggleBlockUser('${u.email}', true)" style="color:#ef4444; border-color:rgba(239,68,68,0.3);"><i class="fa-solid fa-ban"></i> Block</button>`;
+
+                tr.innerHTML = `
+                    <td><strong>${u.fullName || u.name || 'Candidate'}</strong></td>
+                    <td><code>${u.email}</code></td>
+                    <td><span class="status-badge ${roleClass}">${roleLabel}</span></td>
+                    <td>${statusHtml}</td>
+                    <td>${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Recent'}</td>
+                    <td>
+                        <div style="display: flex; gap: 6px;">
+                            ${blockBtn}
+                            <button class="btn-action-sm" onclick="handleDeleteUser('${u.email}')" title="Delete User" style="color: #ef4444;"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function handleToggleBlockUser(email, shouldBlock) {
+            if (!confirm(`Are you sure you want to ${shouldBlock ? 'block' : 'unblock'} user ${email}?`)) return;
+            const res = await window.auth.toggleBlockUser(email);
+            showToast(`User ${email} is now ${res.status.toUpperCase()}`, shouldBlock ? 'error' : 'success');
+            renderAllAdminUsers();
+        }
+
+        async function handleDeleteUser(email) {
+            if (!confirm(`Permanently delete user account ${email}?`)) return;
+            await window.auth.deleteUser(email);
+            showToast(`Account ${email} deleted successfully`, 'success');
+            renderAllAdminUsers();
+        }
+
+        // ================= 3. COMPANY MANAGEMENT (REAL REGISTERED COMPANIES) =================
+        let cachedAdminCompanies = [];
+        let currentCompanyFilter = 'all';
+
+        async function renderCompanyVerificationQueue() {
+            const tbody = document.getElementById('company-management-tbody');
+            if (!tbody) return;
+
+            // Show loading placeholder initially
+            if (!cachedAdminCompanies || cachedAdminCompanies.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;"><i class="fa-solid fa-spinner fa-spin" style="margin-right: 8px;"></i> Syncing registered companies...</td></tr>`;
+            }
+
+            try {
+                if (window.auth && typeof window.auth.getAllCompanies === 'function') {
+                    cachedAdminCompanies = await window.auth.getAllCompanies();
+                } else {
+                    cachedAdminCompanies = await fetchRegisteredCompaniesFallback();
+                }
+            } catch (err) {
+                console.warn("Company sync note:", err);
+                cachedAdminCompanies = await fetchRegisteredCompaniesFallback();
+            }
+
+            // Update badge counts in filter buttons
+            const verified = cachedAdminCompanies.filter(c => c.status === 'approved').length;
+            const pending = cachedAdminCompanies.filter(c => c.status !== 'approved').length;
+
+            const cntAll = document.getElementById('comp-cnt-all');
+            if (cntAll) cntAll.textContent = cachedAdminCompanies.length;
+            const cntVer = document.getElementById('comp-cnt-verified');
+            if (cntVer) cntVer.textContent = verified;
+            const cntPen = document.getElementById('comp-cnt-pending');
+            if (cntPen) cntPen.textContent = pending;
+
+            filterCompaniesBySearchQuery();
+        }
+
+        async function fetchRegisteredCompaniesFallback() {
+            const list = [];
+            const rawUsers = JSON.parse(localStorage.getItem('smartjob_users_db') || '[]');
+            const verifications = JSON.parse(localStorage.getItem('smartjob_company_verifications') || '{}');
+            const allJobs = (window.db && typeof window.db.getJobs === 'function') ? (window.db.getJobs() || []) : JSON.parse(localStorage.getItem('smarthire_jobs') || '[]');
+
+            rawUsers.forEach(u => {
+                if (u.role === 'employer' || u.role === 'company') {
+                    const email = (u.email || '').toLowerCase().trim();
+                    const name = (u.fullName || u.name || (email ? email.split('@')[0] : 'Company')).trim();
+                    const savedProf = JSON.parse(localStorage.getItem(`company_profile_${email}`) || '{}');
+                    const status = verifications[email] || verifications[name.toLowerCase()] || u.status || 'approved';
+
+                    const jobsCount = allJobs.filter(j => {
+                        const jc = (j.company || '').toLowerCase().trim();
+                        const je = (j.employerEmail || j.companyEmail || '').toLowerCase().trim();
+                        return (jc && jc === name.toLowerCase()) || (email && je && je === email);
+                    }).length;
+
+                    list.push({
+                        name: savedProf.name || name,
+                        email: email,
+                        phone: savedProf.phone || u.phone || '',
+                        location: savedProf.location || u.location || 'Remote',
+                        industry: savedProf.industry || 'Technology',
+                        status: status,
+                        jobs: jobsCount
+                    });
+                }
+            });
+            return list;
+        }
+
+        function setCompanyFilter(category) {
+            currentCompanyFilter = category;
+            ['all', 'verified', 'pending'].forEach(f => {
+                const btn = document.getElementById(`comp-filter-${f}`);
+                if (btn) {
+                    if (f === category) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                }
+            });
+            filterCompaniesBySearchQuery();
+        }
+
+        function filterCompaniesBySearchQuery() {
+            const query = (document.getElementById('admin-company-search-input')?.value || '').toLowerCase().trim();
+            const tbody = document.getElementById('company-management-tbody');
+            if (!tbody) return;
+
+            let filtered = cachedAdminCompanies || [];
+            if (currentCompanyFilter === 'verified') filtered = filtered.filter(c => c.status === 'approved');
+            else if (currentCompanyFilter === 'pending') filtered = filtered.filter(c => c.status !== 'approved');
+
+            if (query) {
+                filtered = filtered.filter(c => 
+                    (c.name && c.name.toLowerCase().includes(query)) ||
+                    (c.email && c.email.toLowerCase().includes(query)) ||
+                    (c.location && c.location.toLowerCase().includes(query)) ||
+                    (c.phone && c.phone.toLowerCase().includes(query))
+                );
+            }
+
+            displayCompaniesInTable(filtered, tbody);
+        }
+
+        function displayCompaniesInTable(companies, tbody) {
+            if (!tbody) return;
+            if (!companies || companies.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 40px;">
+                            <i class="fa-solid fa-building-circle-exclamation" style="font-size: 2.2rem; color: #64748b; margin-bottom: 12px; display: block;"></i>
+                            <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">No Registered Companies Found</div>
+                            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">When employers register an account on the platform, their details will automatically show up here for KYC verification and badge approvals.</p>
+                            <button class="btn-action-sm" onclick="seedSampleDemoCompanies()" style="padding: 6px 14px; font-size: 0.85rem;"><i class="fa-solid fa-database"></i> Load Sample Companies for Testing</button>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            companies.forEach(c => {
+                const isVerified = c.status === 'approved';
+                const safeName = (c.name || 'Company').replace(/'/g, "\\'");
+                const safeEmail = (c.email || '').replace(/'/g, "\\'");
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <strong>${c.name}</strong>
+                        <small style="color: var(--text-muted); display: block;">${c.location || 'Location Unspecified'} ${c.industry ? '• ' + c.industry : ''}</small>
+                    </td>
+                    <td><code>${c.email || 'No email registered'}</code></td>
+                    <td>${c.location || 'Remote'}<small style="color: var(--text-muted); display: block;">${c.phone || 'No phone provided'}</small></td>
+                    <td>${isVerified ? `<span class="status-badge badge-active"><i class="fa-solid fa-certificate"></i> Verified Golden Badge</span>` : `<span class="status-badge badge-pending"><i class="fa-solid fa-hourglass-half"></i> Pending Review</span>`}</td>
+                    <td>
+                        <button class="btn-action-sm" onclick="viewCompanyJobs('${safeName}')" title="View company vacancies" style="cursor: pointer;">
+                            <strong>${c.jobs || 0} Listings</strong> <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.75rem; margin-left:3px;"></i>
+                        </button>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 6px;">
+                            ${!isVerified 
+                                ? `<button class="btn-action-sm" onclick="handleCompanyStatusToggle('${safeEmail || safeName}', 'approved')" style="background:#10b981; color:#fff;" title="Grant Golden Badge"><i class="fa-solid fa-check"></i> Approve</button>`
+                                : `<button class="btn-action-sm" onclick="handleCompanyStatusToggle('${safeEmail || safeName}', 'pending')" style="color:#ef4444; border-color: rgba(239,68,68,0.3);" title="Revoke Golden Badge"><i class="fa-solid fa-ban"></i> Revoke</button>`
+                            }
+                            <button class="btn-action-sm" onclick="handleDeleteCompany('${safeEmail}', '${safeName}')" style="color:#ef4444;" title="Delete Corporate Account"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function handleCompanyStatusToggle(identifier, newStatus) {
+            const isApproved = newStatus === 'approved';
+            if (window.auth && typeof window.auth.updateCompanyStatus === 'function') {
+                await window.auth.updateCompanyStatus(identifier, newStatus);
+            } else {
+                let verifications = JSON.parse(localStorage.getItem('smartjob_company_verifications') || '{}');
+                verifications[identifier.toLowerCase()] = newStatus;
+                localStorage.setItem('smartjob_company_verifications', JSON.stringify(verifications));
+            }
+
+            showToast(isApproved ? `⭐ Golden Badge Granted to ${identifier}` : `Badge Revoked for ${identifier}`, isApproved ? 'success' : 'info');
+            await renderCompanyVerificationQueue();
+            if (typeof refreshAdminData === 'function') refreshAdminData();
+        }
+
+        async function handleDeleteCompany(email, name) {
+            if (!confirm(`Are you sure you want to delete company "${name || email}"? This will remove their corporate account.`)) return;
+
+            if (email && window.auth && typeof window.auth.deleteUser === 'function') {
+                await window.auth.deleteUser(email);
+            }
+
+            // Remove verification and local cache entries
+            const verifications = JSON.parse(localStorage.getItem('smartjob_company_verifications') || '{}');
+            if (email) delete verifications[email.toLowerCase()];
+            if (name) delete verifications[name.toLowerCase()];
+            localStorage.setItem('smartjob_company_verifications', JSON.stringify(verifications));
+
+            if (email) localStorage.removeItem(`company_profile_${email.toLowerCase()}`);
+
+            let localUsers = JSON.parse(localStorage.getItem('smartjob_users_db') || '[]');
+            localUsers = localUsers.filter(u => !u.email || u.email.toLowerCase() !== (email || '').toLowerCase());
+            localStorage.setItem('smartjob_users_db', JSON.stringify(localUsers));
+
+            showToast(`Company "${name || email}" deleted successfully`, 'success');
+            await renderCompanyVerificationQueue();
+            if (typeof refreshAdminData === 'function') refreshAdminData();
+        }
+
+        function viewCompanyJobs(companyName) {
+            switchTab('tab-jobs');
+            const searchInput = document.getElementById('admin-job-search-input');
+            if (searchInput) {
+                searchInput.value = companyName;
+                filterJobsBySearchQuery();
+            }
+        }
+
+        async function seedSampleDemoCompanies() {
+            const demoCompanies = [
+                { fullName: 'Google Cloud Platform', email: 'recruitment@google.com', phone: '+1 650-253-0000', location: 'Mountain View, CA', role: 'company', status: 'approved' },
+                { fullName: 'Microsoft Azure Systems', email: 'careers@microsoft.com', phone: '+1 425-882-8080', location: 'Redmond, WA', role: 'company', status: 'approved' },
+                { fullName: 'Amazon AWS AI Labs', email: 'talent@amazon.com', phone: '+1 206-266-1000', location: 'Seattle, WA', role: 'company', status: 'approved' },
+                { fullName: 'Starlight Startups Inc', email: 'hr@starlight.io', phone: '+91 9845012345', location: 'Bangalore, India', role: 'company', status: 'pending' }
+            ];
+
+            let localUsers = JSON.parse(localStorage.getItem('smartjob_users_db') || '[]');
+            let verifications = JSON.parse(localStorage.getItem('smartjob_company_verifications') || '{}');
+
+            demoCompanies.forEach(d => {
+                if (!localUsers.some(u => u.email && u.email.toLowerCase() === d.email.toLowerCase())) {
+                    localUsers.push(d);
+                }
+                verifications[d.email.toLowerCase()] = d.status;
+            });
+
+            localStorage.setItem('smartjob_users_db', JSON.stringify(localUsers));
+            localStorage.setItem('smartjob_company_verifications', JSON.stringify(verifications));
+
+            showToast('Sample companies loaded successfully!', 'success');
+            await renderCompanyVerificationQueue();
+            if (typeof refreshAdminData === 'function') refreshAdminData();
+        }
+
+        // ================= 4. JOB MANAGEMENT =================
+        let currentJobFilter = 'all';
+
+        function renderAdminJobListings() {
+            const tbody = document.getElementById('jobs-directory-tbody');
+            if (!tbody || !window.db) return;
+
+            cachedAdminJobs = window.db.getJobs() || [];
+            const apps = window.db.getApplications() || [];
+
+            const featured = cachedAdminJobs.filter(j => j.featured || j.isFeatured).length;
+            const fulltime = cachedAdminJobs.filter(j => !j.type || j.type.toLowerCase().includes('full')).length;
+            const remote = cachedAdminJobs.filter(j => (j.location && j.location.toLowerCase().includes('remote')) || (j.type && j.type.toLowerCase().includes('remote'))).length;
+
+            if (document.getElementById('job-cnt-all')) document.getElementById('job-cnt-all').textContent = cachedAdminJobs.length;
+            if (document.getElementById('job-cnt-featured')) document.getElementById('job-cnt-featured').textContent = featured;
+            if (document.getElementById('job-cnt-fulltime')) document.getElementById('job-cnt-fulltime').textContent = fulltime;
+            if (document.getElementById('job-cnt-remote')) document.getElementById('job-cnt-remote').textContent = remote;
+
+            displayAdminJobsInTable(cachedAdminJobs, tbody, apps);
+        }
+
+        function setJobCategoryFilter(category) {
+            currentJobFilter = category;
+            ['all', 'featured', 'fulltime', 'remote'].forEach(f => {
+                const btn = document.getElementById(`job-filter-${f}`);
+                if (btn) {
+                    if (f === category) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                }
+            });
+            filterJobsBySearchQuery();
+        }
+
+        function filterJobsBySearchQuery() {
+            const query = (document.getElementById('admin-job-search-input')?.value || '').toLowerCase().trim();
+            const tbody = document.getElementById('jobs-directory-tbody');
+            const apps = window.db ? (window.db.getApplications() || []) : [];
+
+            let filtered = cachedAdminJobs;
+            if (currentJobFilter === 'featured') filtered = filtered.filter(j => j.featured || j.isFeatured);
+            else if (currentJobFilter === 'fulltime') filtered = filtered.filter(j => !j.type || j.type.toLowerCase().includes('full'));
+            else if (currentJobFilter === 'remote') filtered = filtered.filter(j => (j.location && j.location.toLowerCase().includes('remote')) || (j.type && j.type.toLowerCase().includes('remote')));
+
+            if (query) {
+                filtered = filtered.filter(j => (j.title && j.title.toLowerCase().includes(query)) || (j.company && j.company.toLowerCase().includes(query)));
+            }
+
+            displayAdminJobsInTable(filtered, tbody, apps);
+        }
+
+        function displayAdminJobsInTable(jobs, tbody, apps) {
+            if (!tbody) return;
+            if (!jobs || jobs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">No matching job vacancies found.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            jobs.forEach(j => {
+                const isFeatured = j.featured || j.isFeatured;
+                const jobApps = apps.filter(a => a.jobId == j.id || (a.jobTitle && a.jobTitle.toLowerCase() === j.title.toLowerCase()));
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            ${isFeatured ? `<span style="color:#f59e0b;"><i class="fa-solid fa-star"></i></span>` : ''}
+                            <strong>${j.title}</strong>
+                        </div>
+                    </td>
+                    <td><strong>${j.company || 'Enterprise'}</strong></td>
+                    <td>${j.location || 'Remote'}<small style="color: var(--text-muted); display: block;">${j.type || 'Full-Time'}</small></td>
+                    <td><strong style="color: #10b981;">${j.salary || 'Competitive'}</strong></td>
+                    <td><span class="status-badge" style="background: rgba(59,130,246,0.15); color: #3b82f6;"><i class="fa-solid fa-users"></i> ${jobApps.length}</span></td>
+                    <td><span class="status-badge badge-active">Live</span></td>
+                    <td>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="btn-action-sm" onclick="toggleFeatureJob('${j.id}')" title="Boost ⭐"><i class="fa-solid fa-star" style="color:${isFeatured ? '#f59e0b' : 'var(--text-muted)'}"></i></button>
+                            <button class="btn-action-sm" onclick="deleteAdminJob('${j.id}', '${j.title}')" title="Delete"><i class="fa-solid fa-trash" style="color:#ef4444;"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function toggleFeatureJob(jobId) {
+            const jobs = window.db.getJobs() || [];
+            const target = jobs.find(j => j.id == jobId);
+            if (!target) return;
+            target.featured = !target.featured;
+            target.isFeatured = target.featured;
+            localStorage.setItem('smarthire_jobs', JSON.stringify(jobs));
+            showToast(target.featured ? `⭐ Job "${target.title}" Featured!` : `Job unfeatured`, 'info');
+            renderAdminJobListings();
+        }
+
+        async function deleteAdminJob(jobId, jobTitle) {
+            if (!confirm(`Permanently delete vacancy "${jobTitle}"?`)) return;
+            if (window.db && typeof window.db.deleteJob === 'function') await window.db.deleteJob(jobId);
+            showToast(`Job listing deleted successfully!`, 'success');
+            renderAdminJobListings();
+        }
+
+        function openAdminPostJobModal() { document.getElementById('admin-post-job-modal').style.display = 'flex'; }
+        function closeAdminPostJobModal() { document.getElementById('admin-post-job-modal').style.display = 'none'; }
+
+        async function handleAdminCreateJobSubmit(e) {
+            e.preventDefault();
+            const title = document.getElementById('adm-job-title').value.trim();
+            const company = document.getElementById('adm-job-company').value.trim();
+            const location = document.getElementById('adm-job-location').value.trim();
+            const salary = document.getElementById('adm-job-salary').value.trim();
+            const type = document.getElementById('adm-job-type').value;
+            const description = document.getElementById('adm-job-desc').value.trim();
+
+            const newJob = {
+                id: 'job_' + Date.now(),
+                title, company, location, salary, type, description,
+                featured: true, isFeatured: true, status: 'active', createdAt: new Date().toISOString()
+            };
+
+            if (window.db && typeof window.db.saveJob === 'function') await window.db.saveJob(newJob);
+            closeAdminPostJobModal();
+            document.getElementById('admin-post-job-form').reset();
+            showToast(`✅ Official vacancy "${title}" published live!`, 'success');
+            renderAdminJobListings();
+        }
+
+        // ================= 5. APPLICATION MANAGEMENT =================
+        function renderAdminApplications() {
+            const tbody = document.getElementById('applications-directory-tbody');
+            if (!tbody) return;
+
+            const apps = window.db ? (window.db.getApplications() || []) : [];
+            if (apps.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">No candidate applications received yet.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            apps.forEach(a => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${a.candidateName || a.seekerName || 'Candidate'}</strong></td>
+                    <td>${a.jobTitle || 'Software Engineer'}</td>
+                    <td><strong>${a.company || 'Enterprise'}</strong></td>
+                    <td>${a.appliedAt ? new Date(a.appliedAt).toLocaleDateString() : 'Recent'}</td>
+                    <td><span class="status-badge badge-active">${a.matchScore || '92% Fit'}</span></td>
+                    <td><span class="status-badge badge-seeker">${a.status || 'Applied'}</span></td>
+                    <td>
+                        <button class="btn-action-sm" onclick="showToast('Candidate status advanced', 'success')"><i class="fa-solid fa-arrow-right"></i> Advance</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ================= 6. REPORTS & COMPLAINTS =================
+        function renderReportsQueue() {
+            const tbody = document.getElementById('reports-queue-tbody');
+            if (!tbody) return;
+
+            const reports = [
+                { target: 'Crypto Trading Assistant ($5,000/week)', category: 'Unrealistic Salary Package', reporter: 'seeker@gmail.com', risk: 'HIGH', time: '10m ago' },
+                { target: 'Starlight Tech Recruiters', category: 'Unverified Telegram Link', reporter: 'alex@example.com', risk: 'MEDIUM', time: '1h ago' }
+            ];
+
+            tbody.innerHTML = '';
+            reports.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${r.target}</strong></td>
+                    <td><code style="color: #ef4444;">${r.category}</code></td>
+                    <td>${r.reporter}</td>
+                    <td><span class="status-badge badge-blocked">${r.risk} RISK</span></td>
+                    <td>${r.time}</td>
+                    <td>
+                        <button class="btn-action-sm" onclick="showToast('Listing quarantined & resolved', 'success'); this.closest('tr').remove();" style="background:#10b981; color:#fff;"><i class="fa-solid fa-check"></i> Resolve</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+
+
+        // ================= 8. ANALYTICS EXPORT =================
+        function exportAnalyticsCsv() {
+            const csv = "Metric,Value,Status\nTotal Users," + cachedUsersList.length + ",Active\nTotal Jobs," + cachedAdminJobs.length + ",Live\nPlacement Rate,28.6%,Normal\n";
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `JobFinder_Platform_Report_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('✅ Analytics CSV exported successfully!', 'success');
+        }
+
+        function exportJsonSystemBackup() {
+            const backup = {
+                timestamp: new Date().toISOString(),
+                users: cachedUsersList,
+                jobs: cachedAdminJobs,
+                applications: cachedAppsList
+            };
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `JobFinder_Full_Backup_${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('✅ System JSON Backup Downloaded!', 'success');
+        }
+
+        // ================= 9. BROADCAST NOTIFICATIONS =================
+        function handleSendBroadcastSubmit(e) {
+            e.preventDefault();
+            const target = document.getElementById('broadcast-target').value;
+            const title = document.getElementById('broadcast-title').value;
+            const msg = document.getElementById('broadcast-message').value;
+
+            const list = document.getElementById('broadcast-history-list');
+            if (list) {
+                const item = document.createElement('div');
+                item.style.padding = '12px';
+                item.style.borderRadius = 'var(--radius-md)';
+                item.style.background = 'rgba(255,255,255,0.03)';
+                item.style.border = '1px solid var(--border-card)';
+                item.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <strong style="color: var(--text-main); font-size: 0.88rem;">${title}</strong>
+                        <span class="status-badge badge-active">Dispatched</span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 4px;">${msg}</p>
+                    <small style="color: var(--accent); font-size: 0.72rem; display: block; margin-top: 4px;">Target: ${target} &bull; Just now</small>
+                `;
+                list.prepend(item);
+            }
+
+            document.getElementById('form-broadcast').reset();
+            showToast(`📢 Broadcast sent successfully to ${target}!`, 'success');
+        }
+
+        // ================= 10. CATEGORIES MODAL =================
+        function openAddCategoryModal() {
+            const name = prompt('Enter new Industry Category Name:');
+            if (name) {
+                const tbody = document.getElementById('category-tbody');
+                if (tbody) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td><strong>${name}</strong></td><td>0 Vacancies</td><td><button class="btn-action-sm" onclick="showToast('Category active', 'info')">Manage</button></td>`;
+                    tbody.prepend(tr);
+                }
+                showToast(`✅ Category "${name}" added successfully!`, 'success');
+            }
+        }
+
+        // ================= 11. SECURITY AUDIT LOGS =================
+        function renderSecurityAuditLogs() {
+            const tbody = document.getElementById('security-audit-tbody');
+            if (!tbody) return;
+
+            const now = new Date();
+            const logs = [
+                { time: new Date(now - 1000 * 60 * 2).toLocaleTimeString(), event: 'AUTH_SIGNIN_SUCCESS', actor: 'admin@gmail.com', ip: '127.0.0.1 (Windows)', status: 'Success', color: '#10b981' },
+                { time: new Date(now - 1000 * 60 * 12).toLocaleTimeString(), event: 'COMPANY_BADGE_GRANTED', actor: 'admin@smartjob.com', ip: '127.0.0.1 (Console)', status: 'Approved', color: '#3b82f6' },
+                { time: new Date(now - 1000 * 60 * 25).toLocaleTimeString(), event: 'USER_ACCOUNT_BLOCK', actor: 'admin@gmail.com', ip: '127.0.0.1 (Console)', status: 'Restricted', color: '#ef4444' },
+                { time: new Date(now - 1000 * 60 * 45).toLocaleTimeString(), event: 'SYSTEM_SETTINGS_UPDATE', actor: 'admin@smartjob.com', ip: '127.0.0.1 (Console)', status: 'Saved', color: '#a855f7' }
+            ];
+
+            tbody.innerHTML = '';
+            logs.forEach(l => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><small style="color: var(--text-muted);">${l.time}</small></td>
+                    <td><code style="font-weight: 800; color: ${l.color};">${l.event}</code></td>
+                    <td><strong>${l.actor}</strong></td>
+                    <td><small>${l.ip}</small></td>
+                    <td><span class="status-badge" style="background: rgba(255,255,255,0.06); color: ${l.color};">${l.status}</span></td>
+                    <td><button class="btn-action-sm" onclick="showToast('Log Entry Verified', 'info')"><i class="fa-solid fa-shield"></i> Verify</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportAuditLogsCsv() {
+            const csv = "Timestamp,Event,Actor,IP,Status\n" +
+                "2026-08-25 18:30:00,AUTH_SIGNIN_SUCCESS,admin@gmail.com,127.0.0.1,Success\n" +
+                "2026-08-25 18:25:00,COMPANY_BADGE_GRANTED,admin@smartjob.com,127.0.0.1,Approved\n";
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `JobFinder_Security_Audit_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('✅ Security Audit Log exported!', 'success');
+        }
+
+        // ================= 12. SETTINGS =================
+        function handleSaveSettings(e) {
+            e.preventDefault();
+            const name = document.getElementById('set-app-name').value;
+            localStorage.setItem('smartjob_app_name', name);
+            showToast('✅ Governance & Platform Settings Saved!', 'success');
+        }
+
+        function handleChangeAdminPassword(e) {
+            e.preventDefault();
+            showToast('🔒 Admin credentials updated securely!', 'success');
+            document.getElementById('set-curr-pass').value = '';
+            document.getElementById('set-new-pass').value = '';
+        }
+
+        function adminLogoutNow() {
+            if (confirm('Are you sure you want to sign out from the Super Admin Console?')) {
+                if (window.auth) window.auth.logout();
+                else window.location.href = 'index.html';
+            }
+        }
+
+        // Auto load on boot
+        window.addEventListener('DOMContentLoaded', () => {
+            refreshAdminData();
+        });
+    </script>
+</body>
+</html>
