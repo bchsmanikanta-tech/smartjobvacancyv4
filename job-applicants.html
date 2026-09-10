@@ -552,12 +552,15 @@
     <script src="js/auth.js"></script>
     <script src="js/db.js"></script>
     <script>
+        let currentCompanyId = '';
         let currentCompany = 'BVCITS';
         let companyEmail = 'company@smartjob.com';
 
         function getQueryParams() {
             const params = new URLSearchParams(window.location.search);
             return {
+                id: params.get('session_id') || params.get('id'),
+                jobId: params.get('jobId'),
                 email: params.get('session_email'),
                 name: params.get('session_name'),
                 role: params.get('session_role')
@@ -568,8 +571,14 @@
             const q = getQueryParams();
             const user = window.auth?.getCurrentUser();
 
+            if (q.id) {
+                currentCompanyId = q.id;
+            } else if (user) {
+                currentCompanyId = user.companyId || user.company_id || user.id || '';
+            }
+
             if (q.name) currentCompany = decodeURIComponent(q.name);
-            else if (user) currentCompany = user.fullName || user.email.split('@')[0];
+            else if (user) currentCompany = user.companyName || user.fullName || user.email.split('@')[0];
 
             if (q.email) companyEmail = decodeURIComponent(q.email);
             else if (user) companyEmail = user.email;
@@ -577,14 +586,12 @@
             // Sync Dashboard Return link
             const dashLink = document.getElementById('btn-back-company-dash');
             if (dashLink) {
-                dashLink.href = `company-dashboard.html?session_email=${encodeURIComponent(companyEmail)}&session_name=${encodeURIComponent(currentCompany)}&session_role=company`;
+                dashLink.href = `company-dashboard.html?session_id=${encodeURIComponent(currentCompanyId)}&session_email=${encodeURIComponent(companyEmail)}&session_name=${encodeURIComponent(currentCompany)}&session_role=company`;
             }
 
             const tbody = document.getElementById('applicants-table-body');
             if (!tbody) return;
 
-            let allApps = JSON.parse(localStorage.getItem('smarthire_applications') || '[]');
-            
             // Remove demo placeholder records
             const renderRows = (apps) => {
                 tbody.innerHTML = '';
@@ -639,7 +646,7 @@
                         <td>
                             <div class="action-cell-stack">
                                 <div class="action-row-btns">
-                                    ${acceptBtn}
+                                     ${acceptBtn}
                                     <button class="btn-act-reject" onclick="updateAppStatus('${a.id}', 'Rejected')"><i class="fa-solid fa-circle-xmark"></i> Reject</button>
                                 </div>
                                 <button class="btn-act-chat" onclick="openCandidateChat('${(a.applicantName || a.fullName || 'Candidate').replace(/'/g, "\\'")}', '${(a.applicantEmail || a.email || 'candidate@gmail.com').replace(/'/g, "\\'")}')"><i class="fa-regular fa-comment-dots"></i> Chat</button>
@@ -657,12 +664,18 @@
                 return;
             }
 
-            let companyApps = window.db?.getApplicationsForCompany ? window.db.getApplicationsForCompany(currentCompany, companyEmail) : [];
+            let companyApps = window.db?.getApplicationsForCompany ? window.db.getApplicationsForCompany(currentCompanyId, currentCompany, companyEmail) : [];
+            if (q.jobId) {
+                companyApps = companyApps.filter(a => String(a.jobId) === String(q.jobId) || String(a.job_id) === String(q.jobId));
+            }
             renderRows(companyApps);
 
             if (window.db && typeof window.db.fetchApplicationsFromSupabase === 'function') {
                 window.db.fetchApplicationsFromSupabase().then(() => {
-                    const fresh = window.db.getApplicationsForCompany ? window.db.getApplicationsForCompany(currentCompany, companyEmail) : [];
+                    let fresh = window.db.getApplicationsForCompany ? window.db.getApplicationsForCompany(currentCompanyId, currentCompany, companyEmail) : [];
+                    if (q.jobId) {
+                        fresh = fresh.filter(a => String(a.jobId) === String(q.jobId) || String(a.job_id) === String(q.jobId));
+                    }
                     renderRows(fresh);
                 });
             }
@@ -686,7 +699,7 @@
                 showToast(`Candidate application marked as rejected.`, 'info');
             }
 
-            loadJobApplicantsData();
+            loadApplicantsList();
         }
 
         let activeChatEmail = '';

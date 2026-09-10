@@ -32,6 +32,18 @@
     }
     window.toUUID = toUUID;
 
+    // Helper: Generate fresh RFC-4122 UUID natively
+    function generateUUID() {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            return crypto.randomUUID();
+        }
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+    window.generateUUID = generateUUID;
+
     class DatabaseService {
         constructor() {
             this.supabase = null;
@@ -92,35 +104,46 @@
         // 1. APPLICATIONS (ISOLATED & SECURE)
         // ==========================================
         async saveApplication(appData) {
-            const rawId = appData.id || ('app_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5));
-            const applicantName = appData.fullName || appData.applicantName || 'Candidate';
-            const applicantEmail = (appData.email || appData.applicantEmail || '').trim().toLowerCase();
-            const matchScore = Number(appData.matchScore || appData.aiMatch || 90);
             const currentAuth = window.auth?.getCurrentUser();
-            const seekerId = appData.seekerId || appData.seeker_id || currentAuth?.id || applicantEmail;
+            const rawId = appData.id || generateUUID();
+            const appId = toUUID(rawId);
+            const applicantName = appData.fullName || appData.applicantName || currentAuth?.fullName || 'Candidate';
+            const applicantEmail = (appData.email || appData.applicantEmail || currentAuth?.email || '').trim().toLowerCase();
+            const matchScore = Number(appData.matchScore || appData.aiMatch || 90);
+            const candidateId = toUUID(appData.candidateId || appData.candidate_id || appData.seekerId || appData.seeker_id || currentAuth?.id || applicantEmail);
 
             // Find matching job to associate companyId if not provided
             let companyId = appData.companyId || appData.company_id || '';
             const allJobs = this.getJobs();
-            const matchedJob = allJobs.find(j => String(j.id) === String(appData.jobId));
+            const targetJobIdStr = String(appData.jobId || appData.job_id || '');
+            const matchedJob = allJobs.find(j => String(j.id) === targetJobIdStr || String(j.job_id) === targetJobIdStr);
             if (matchedJob) {
-                companyId = companyId || matchedJob.companyId || matchedJob.company_id || matchedJob.company;
+                companyId = companyId || matchedJob.companyId || matchedJob.company_id || '';
             }
 
+            const targetJobId = matchedJob ? (matchedJob.job_id || matchedJob.id) : (appData.jobId || appData.job_id || appId);
+
             const newApp = {
-                id: rawId,
-                jobId: appData.jobId || rawId,
+                id: appId,
+                application_id: appId,
+                jobId: targetJobId,
+                job_id: targetJobId,
                 jobTitle: appData.jobTitle || matchedJob?.title || 'Software Engineer',
                 company: appData.company || matchedJob?.company || 'TechCorp Global',
+                company_name: appData.company || matchedJob?.company || 'TechCorp Global',
                 companyId: companyId,
-                seekerId: seekerId,
+                company_id: companyId,
+                candidateId: candidateId,
+                candidate_id: candidateId,
+                seekerId: candidateId,
+                seeker_id: candidateId,
                 fullName: applicantName,
                 applicantName: applicantName,
                 email: applicantEmail,
                 applicantEmail: applicantEmail,
-                phone: appData.phone || '',
-                location: appData.location || appData.city || 'Visakhapatnam',
-                city: appData.city || appData.location || 'Visakhapatnam',
+                phone: appData.phone || currentAuth?.phone || '',
+                location: appData.location || appData.city || currentAuth?.location || 'Visakhapatnam',
+                city: appData.city || appData.location || currentAuth?.location || 'Visakhapatnam',
                 qualification: appData.qualification || 'B.Tech / Diploma',
                 college: appData.college || '',
                 passYear: appData.passYear || '2026',
@@ -138,7 +161,11 @@
 
             // 1. Persist to Local Storage
             const apps = this.getApplications();
-            const existingIdx = apps.findIndex(a => a.id === newApp.id || (String(a.jobId) === String(newApp.jobId) && (a.applicantEmail || a.email)?.toLowerCase() === newApp.email.toLowerCase()));
+            const existingIdx = apps.findIndex(a => 
+                String(a.id) === String(newApp.id) || 
+                (String(a.jobId || a.job_id) === String(newApp.jobId) && 
+                 (a.applicantEmail || a.email)?.toLowerCase() === newApp.email.toLowerCase())
+            );
             if (existingIdx >= 0) {
                 apps[existingIdx] = newApp;
             } else {
@@ -153,7 +180,9 @@
                     const payload = {
                         application_id: toUUID(newApp.id),
                         job_id: toUUID(newApp.jobId),
-                        seeker_id: toUUID(seekerId),
+                        seeker_id: toUUID(candidateId),
+                        candidate_id: toUUID(candidateId),
+                        company_id: companyId ? toUUID(companyId) : null,
                         job_title: newApp.jobTitle,
                         company: newApp.company,
                         full_name: newApp.fullName,
@@ -188,7 +217,7 @@
 
             // 3. Dispatch Notification to Candidate
             this.addNotification({
-                userId: seekerId,
+                userId: candidateId,
                 userEmail: newApp.email,
                 title: 'Application Submitted',
                 message: `Your application for "${newApp.jobTitle}" at ${newApp.company} was submitted successfully.`,
@@ -197,10 +226,9 @@
             });
 
             // 4. Dispatch Notification to Company / Recruiter
-            const targetCompany = newApp.company;
             this.addNotification({
                 userId: companyId,
-                userEmail: targetCompany,
+                userEmail: newApp.company,
                 title: 'New Candidate Application',
                 message: `${newApp.fullName} applied for your opening: "${newApp.jobTitle}".`,
                 type: 'info',
@@ -237,30 +265,38 @@
             const all = this.getApplications();
             return all.filter(a => {
                 const aMail = (a.applicantEmail || a.email || '').trim().toLowerCase();
-                const aSeeker = String(a.seekerId || a.seeker_id || '').trim().toLowerCase();
+                const aSeeker = String(a.seekerId || a.seeker_id || a.candidateId || a.candidate_id || '').trim().toLowerCase();
                 return aMail === target || aSeeker === target;
             });
         }
 
         // Company Application Isolation: Company only sees applications for its own posted jobs
-        getApplicationsForCompany(companyNameOrId, companyEmail = '') {
-            if (!companyNameOrId && !companyEmail) return [];
-            const compName = (companyNameOrId || '').trim().toLowerCase();
-            const compMail = (companyEmail || '').trim().toLowerCase();
-            const companyJobs = this.getJobsForCompany(companyNameOrId, companyEmail);
-            const companyJobIds = new Set(companyJobs.map(j => String(j.id)));
+        getApplicationsForCompany(companyIdOrName, companyNameOrEmail = '', companyEmailFallback = '') {
+            const arg1 = (companyIdOrName || '').trim().toLowerCase();
+            const arg2 = (companyNameOrEmail || '').trim().toLowerCase();
+            const arg3 = (companyEmailFallback || '').trim().toLowerCase();
+            if (!arg1 && !arg2 && !arg3) return [];
+
+            const companyJobs = this.getJobsForCompany(companyIdOrName, companyNameOrEmail, companyEmailFallback);
+            const companyJobIds = new Set(companyJobs.map(j => String(j.id || j.job_id).toLowerCase()));
 
             const all = this.getApplications();
+            const targets = [arg1, arg2, arg3].filter(Boolean);
+
             return all.filter(a => {
                 if (a.id === 'app_101' || a.id === 'app_102' || a.id === 'app_103') return false;
-                const aComp = (a.company || '').trim().toLowerCase();
-                const aJobId = String(a.jobId || a.job_id || '');
-                const aCompId = (a.companyId || a.company_id || '').trim().toLowerCase();
+                const aComp = (a.company || a.company_name || '').trim().toLowerCase();
+                const aJobId = String(a.jobId || a.job_id || '').trim().toLowerCase();
+                const aCompId = String(a.companyId || a.company_id || '').trim().toLowerCase();
 
-                return (compName && aComp === compName) || 
-                       companyJobIds.has(aJobId) || 
-                       (compName && aCompId === compName) ||
-                       (compMail && aCompId === compMail);
+                // 1. Matched directly by companyId
+                const matchesCompanyId = targets.some(t => aCompId && aCompId === t);
+                // 2. Matched because the application's jobId is in this company's jobs
+                const matchesJobId = companyJobIds.has(aJobId);
+                // 3. Matched by company name string
+                const matchesName = targets.some(t => aComp && aComp === t);
+
+                return matchesCompanyId || matchesJobId || matchesName;
             });
         }
 
@@ -276,9 +312,18 @@
 
                 const cloudApps = data.map(a => ({
                     id: a.application_id,
+                    application_id: a.application_id,
                     jobId: a.job_id,
+                    job_id: a.job_id,
+                    companyId: a.company_id || '',
+                    company_id: a.company_id || '',
+                    candidateId: a.candidate_id || a.seeker_id || '',
+                    candidate_id: a.candidate_id || a.seeker_id || '',
+                    seekerId: a.seeker_id || a.candidate_id || '',
+                    seeker_id: a.seeker_id || a.candidate_id || '',
                     jobTitle: a.job_title,
                     company: a.company,
+                    company_name: a.company,
                     applicantName: a.full_name,
                     fullName: a.full_name,
                     applicantEmail: a.email,
@@ -306,7 +351,16 @@
                 const mergedMap = new Map();
                 cloudApps.forEach(a => mergedMap.set(String(a.id), a));
                 localApps.forEach(a => {
-                    if (!mergedMap.has(String(a.id))) mergedMap.set(String(a.id), a);
+                    const key = String(a.id || a.application_id);
+                    if (!mergedMap.has(key)) {
+                        mergedMap.set(key, a);
+                    } else {
+                        const existing = mergedMap.get(key);
+                        if (!existing.companyId && a.companyId) {
+                            existing.companyId = a.companyId;
+                            existing.company_id = a.company_id;
+                        }
+                    }
                 });
 
                 const mergedList = Array.from(mergedMap.values());
@@ -357,18 +411,22 @@
         // 2. JOB VACANCIES (EMPLOYER POSTINGS & ISOLATION)
         // ==========================================
         async saveJob(jobData) {
-            const rawId = jobData.id || ('job_' + Date.now());
             const currentAuth = window.auth?.getCurrentUser();
-            const companyId = jobData.companyId || jobData.company_id || currentAuth?.id || '';
-            const companyName = (jobData.company || jobData.company_name || currentAuth?.fullName || 'TechCorp Global').trim();
+            const rawId = jobData.id || generateUUID();
+            const jobId = toUUID(rawId);
+            const companyId = jobData.companyId || jobData.company_id || currentAuth?.companyId || currentAuth?.company_id || currentAuth?.id || '';
+            const companyName = (jobData.company || jobData.company_name || currentAuth?.companyName || currentAuth?.fullName || 'TechCorp Global').trim();
+            const companyEmail = (jobData.companyEmail || jobData.email || currentAuth?.email || '').trim().toLowerCase();
 
             const newJob = {
-                id: rawId,
+                id: jobId,
+                job_id: jobId,
                 title: jobData.title,
                 company: companyName,
                 company_name: companyName,
                 companyId: companyId,
                 company_id: companyId,
+                companyEmail: companyEmail,
                 location: jobData.location || 'Visakhapatnam',
                 salary: jobData.salary || '₹30,000 - ₹50,000/mo',
                 type: jobData.type || jobData.workMode || 'Full-time',
@@ -382,7 +440,7 @@
 
             // 1. Save locally
             const jobs = this.getJobs();
-            const existingIdx = jobs.findIndex(j => String(j.id) === String(newJob.id));
+            const existingIdx = jobs.findIndex(j => String(j.id) === String(newJob.id) || String(j.job_id) === String(newJob.id));
             if (existingIdx >= 0) {
                 jobs[existingIdx] = newJob;
             } else {
@@ -424,7 +482,7 @@
 
         async updateJob(jobId, updatedFields) {
             const jobs = this.getJobs();
-            const idx = jobs.findIndex(j => String(j.id) === String(jobId));
+            const idx = jobs.findIndex(j => String(j.id) === String(jobId) || String(j.job_id) === String(jobId));
             if (idx >= 0) {
                 jobs[idx] = { ...jobs[idx], ...updatedFields };
                 localStorage.setItem(STORAGE_KEYS.JOBS, JSON.stringify(jobs));
@@ -453,7 +511,7 @@
 
         async deleteJob(jobId) {
             let jobs = this.getJobs();
-            jobs = jobs.filter(j => String(j.id) !== String(jobId));
+            jobs = jobs.filter(j => String(j.id) !== String(jobId) && String(j.job_id) !== String(jobId));
             localStorage.setItem(STORAGE_KEYS.JOBS, JSON.stringify(jobs));
 
             const client = this.getSupabase();
@@ -485,18 +543,25 @@
         }
 
         // Return jobs strictly belonging to a specific company
-        getJobsForCompany(companyNameOrId, companyEmail = '') {
-            const compName = (companyNameOrId || '').trim().toLowerCase();
-            const compMail = (companyEmail || '').trim().toLowerCase();
+        getJobsForCompany(companyIdOrName, companyNameOrEmail = '', companyEmailFallback = '') {
+            const arg1 = (companyIdOrName || '').trim().toLowerCase();
+            const arg2 = (companyNameOrEmail || '').trim().toLowerCase();
+            const arg3 = (companyEmailFallback || '').trim().toLowerCase();
             const all = this.getJobs();
-            if (!compName && !compMail) return [];
+            if (!arg1 && !arg2 && !arg3) return [];
+
+            const targets = [arg1, arg2, arg3].filter(Boolean);
 
             return all.filter(j => {
                 const jComp = (j.company || j.company_name || '').trim().toLowerCase();
                 const jCompId = String(j.companyId || j.company_id || '').trim().toLowerCase();
-                return (compName && jComp === compName) || 
-                       (compName && jCompId === compName) ||
-                       (compMail && jCompId === compMail);
+                const jCompMail = String(j.companyEmail || '').trim().toLowerCase();
+
+                return targets.some(t => 
+                    (jCompId && jCompId === t) ||
+                    (jComp && jComp === t) ||
+                    (jCompMail && jCompMail === t)
+                );
             });
         }
 
@@ -512,6 +577,7 @@
 
                 const cloudJobs = data.map(j => ({
                     id: j.job_id,
+                    job_id: j.job_id,
                     title: j.title,
                     company: j.company_name || 'TechCorp Global',
                     company_name: j.company_name || 'TechCorp Global',
@@ -532,7 +598,15 @@
                 const mergedMap = new Map();
                 cloudJobs.forEach(j => mergedMap.set(String(j.id), j));
                 localJobs.forEach(j => {
-                    if (!mergedMap.has(String(j.id))) mergedMap.set(String(j.id), j);
+                    const key = String(j.id || j.job_id);
+                    if (!mergedMap.has(key)) {
+                        mergedMap.set(key, j);
+                    } else {
+                        const existing = mergedMap.get(key);
+                        if (!existing.companyEmail && j.companyEmail) {
+                            existing.companyEmail = j.companyEmail;
+                        }
+                    }
                 });
 
                 const mergedList = Array.from(mergedMap.values());

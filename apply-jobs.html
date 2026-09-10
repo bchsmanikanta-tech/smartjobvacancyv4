@@ -592,9 +592,19 @@
                     return;
                 }
 
+                const user = window.auth?.getCurrentUser();
+                const candidateId = user?.id || '';
+                const appId = window.db?.generateUUID ? window.db.generateUUID() : ('app_' + Date.now());
+
                 const newAppData = {
-                    id: 'app_' + Date.now(),
+                    id: appId,
                     jobId: jobId,
+                    job_id: jobId,
+                    companyId: targetJob?.companyId || targetJob?.company_id || '',
+                    company_id: targetJob?.companyId || targetJob?.company_id || '',
+                    companyEmail: targetJob?.companyEmail || '',
+                    candidateId: candidateId,
+                    candidate_id: candidateId,
                     jobTitle: jobTitle,
                     company: company,
                     fullName: fullName,

@@ -74,6 +74,8 @@ CREATE TABLE IF NOT EXISTS public.applications (
     application_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     job_id UUID,
     seeker_id UUID,
+    candidate_id UUID,
+    company_id UUID,
     job_title VARCHAR(255),
     company VARCHAR(255),
     full_name VARCHAR(255),
@@ -94,6 +96,15 @@ CREATE TABLE IF NOT EXISTS public.applications (
     notes TEXT,
     applied_date TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Non-destructive column migrations for existing databases
+ALTER TABLE public.applications ADD COLUMN IF NOT EXISTS company_id UUID;
+ALTER TABLE public.applications ADD COLUMN IF NOT EXISTS candidate_id UUID;
+CREATE INDEX IF NOT EXISTS idx_applications_company_id ON public.applications(company_id);
+CREATE INDEX IF NOT EXISTS idx_applications_job_id ON public.applications(job_id);
+CREATE INDEX IF NOT EXISTS idx_applications_candidate_id ON public.applications(candidate_id);
+CREATE INDEX IF NOT EXISTS idx_jobs_company_id ON public.jobs(company_id);
+
 
 -- 6. SavedJobs Table (Bookmarks)
 CREATE TABLE IF NOT EXISTS public.saved_jobs (

@@ -580,6 +580,7 @@
     <script src="js/auth.js"></script>
     <script src="js/db.js"></script>
     <script>
+        let currentEmployerId = '';
         let currentEmployerName = 'BVCITS';
         let currentEmployerEmail = 'employer@smartjob.com';
         let cachedApplicationsList = [];
@@ -588,6 +589,7 @@
         function getQueryParams() {
             const params = new URLSearchParams(window.location.search);
             return {
+                id: params.get('session_id') || params.get('id'),
                 email: params.get('session_email'),
                 name: params.get('session_name'),
                 role: params.get('session_role')
@@ -602,6 +604,12 @@
             if (role === 'seeker') {
                 window.location.replace('seeker-dashboard.html');
                 return;
+            }
+
+            if (q.id) {
+                currentEmployerId = q.id;
+            } else if (user) {
+                currentEmployerId = user.companyId || user.company_id || user.id || '';
             }
 
             if (q.name) {
@@ -619,7 +627,7 @@
             // Sync dashboard link
             const dashLink = document.getElementById('btn-back-dashboard');
             if (dashLink) {
-                dashLink.href = `company-dashboard.html?session_email=${encodeURIComponent(currentEmployerEmail)}&session_name=${encodeURIComponent(currentEmployerName)}&session_role=company`;
+                dashLink.href = `company-dashboard.html?session_id=${encodeURIComponent(currentEmployerId)}&session_email=${encodeURIComponent(currentEmployerEmail)}&session_name=${encodeURIComponent(currentEmployerName)}&session_role=company`;
             }
 
             renderJobsGrid();
@@ -632,7 +640,7 @@
             const container = document.getElementById('manage-jobs-grid');
             if (!container || !window.db) return;
 
-            const companyJobs = window.db.getJobsForCompany ? window.db.getJobsForCompany(currentEmployerName, currentEmployerEmail) : [];
+            const companyJobs = window.db.getJobsForCompany ? window.db.getJobsForCompany(currentEmployerId, currentEmployerName, currentEmployerEmail) : [];
 
             if (companyJobs.length === 0) {
                 container.innerHTML = `
@@ -684,15 +692,16 @@
         function viewJobApplicants(jobId) {
             const q = getQueryParams();
             const user = window.auth?.getCurrentUser();
-            const email = q.email || user?.email || 'company@smartjob.com';
+            const id = q.id || currentEmployerId;
+            const email = q.email || user?.email || currentEmployerEmail;
             const name = q.name || currentEmployerName;
-            window.location.href = `job-applicants.html?session_email=${encodeURIComponent(email)}&session_name=${encodeURIComponent(name)}&session_role=company`;
+            window.location.href = `job-applicants.html?session_id=${encodeURIComponent(id)}&session_email=${encodeURIComponent(email)}&session_name=${encodeURIComponent(name)}&session_role=company${jobId ? `&jobId=${encodeURIComponent(jobId)}` : ''}`;
         }
 
         function loadApplicantsModalData(filterJobId = null) {
             let apps = [];
             if (window.db && typeof window.db.getApplicationsForCompany === 'function') {
-                apps = window.db.getApplicationsForCompany(currentEmployerName, currentEmployerEmail) || [];
+                apps = window.db.getApplicationsForCompany(currentEmployerId, currentEmployerName, currentEmployerEmail) || [];
             } else if (window.db && typeof window.db.getApplications === 'function') {
                 const all = window.db.getApplications() || [];
                 apps = all.filter(a => a.company && a.company.toLowerCase() === currentEmployerName.toLowerCase());

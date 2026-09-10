@@ -947,7 +947,7 @@
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
                         <label class="form-label" style="font-size: 0.82rem; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">Company Name</label>
-                        <input type="text" id="job-company" class="form-input" placeholder="BVCITS" value="BVCITS" required style="padding: 11px 14px; border-radius: 8px;">
+                        <input type="text" id="job-company" class="form-input" placeholder="Enter Company Name" required style="padding: 11px 14px; border-radius: 8px;">
                     </div>
                 </div>
 
@@ -1336,20 +1336,26 @@
     <script src="js/auth.js?v=20260825_3"></script>
     <script src="js/db.js?v=20260825_3"></script>
     <script>
-        let currentEmployerName = 'BVCITS';
+        let currentEmployerId = '';
+        let currentEmployerName = 'Company';
         let currentEmployerEmail = 'employer@smartjob.com';
 
         function getQueryParams() {
             const params = new URLSearchParams(window.location.search);
             return {
-                email: params.get('session_email'),
-                name: params.get('session_name'),
-                role: params.get('session_role')
+                id: params.get('session_id') || params.get('company_id') || params.get('id'),
+                email: params.get('session_email') || params.get('email'),
+                name: params.get('session_name') || params.get('name'),
+                role: params.get('session_role') || params.get('role')
             };
         }
 
         // ---------------- MODAL UTILITIES ----------------
         function openPostJobModal() {
+            const compInput = document.getElementById('job-company');
+            if (compInput) {
+                compInput.value = currentEmployerName;
+            }
             document.getElementById('modal-post-job')?.classList.add('active');
         }
 
@@ -2006,17 +2012,19 @@
         function openCompanyProfileModal() {
             const q = getQueryParams();
             const user = window.auth?.getCurrentUser();
-            const email = q.email || user?.email || 'mrmaheshbabu222@gmail.com';
+            const email = q.email || currentEmployerEmail || user?.email || '';
             const name = q.name || currentEmployerName;
-            window.location.href = `company-profile.html?session_email=${encodeURIComponent(email)}&session_name=${encodeURIComponent(name)}&session_role=company`;
+            const id = currentEmployerId;
+            window.location.href = `company-profile.html?session_id=${encodeURIComponent(id)}&session_email=${encodeURIComponent(email)}&session_name=${encodeURIComponent(name)}&session_role=company`;
         }
 
         function openManageVacanciesPage() {
             const q = getQueryParams();
             const user = window.auth?.getCurrentUser();
-            const email = q.email || user?.email || 'mrmaheshbabu222@gmail.com';
+            const email = q.email || currentEmployerEmail || user?.email || '';
             const name = q.name || currentEmployerName;
-            window.location.href = `manage-vacancies.html?session_email=${encodeURIComponent(email)}&session_name=${encodeURIComponent(name)}&session_role=company`;
+            const id = currentEmployerId;
+            window.location.href = `manage-vacancies.html?session_id=${encodeURIComponent(id)}&session_email=${encodeURIComponent(email)}&session_name=${encodeURIComponent(name)}&session_role=company`;
         }
 
         let cachedApplicationsList = [];
@@ -2034,25 +2042,32 @@
         function openFullApplicantsPage() {
             const q = getQueryParams();
             const user = window.auth?.getCurrentUser();
-            const email = q.email || user?.email || 'mrmaheshbabu222@gmail.com';
+            const email = q.email || currentEmployerEmail || user?.email || '';
             const name = q.name || currentEmployerName;
-            window.location.href = `job-applicants.html?session_email=${encodeURIComponent(email)}&session_name=${encodeURIComponent(name)}&session_role=company`;
+            const id = currentEmployerId;
+            window.location.href = `job-applicants.html?session_id=${encodeURIComponent(id)}&session_email=${encodeURIComponent(email)}&session_name=${encodeURIComponent(name)}&session_role=company`;
         }
 
         function loadApplicantsModalData(filterJobId = null) {
             let apps = [];
             if (window.db && typeof window.db.getApplicationsForCompany === 'function') {
-                apps = window.db.getApplicationsForCompany(currentEmployerName, currentEmployerEmail) || [];
+                apps = window.db.getApplicationsForCompany(currentEmployerId, currentEmployerName, currentEmployerEmail) || [];
             } else if (window.db && typeof window.db.getApplications === 'function') {
                 const all = window.db.getApplications() || [];
-                apps = all.filter(a => a.company && a.company.toLowerCase() === currentEmployerName.toLowerCase());
+                apps = all.filter(a => 
+                    (currentEmployerId && (String(a.companyId) === String(currentEmployerId) || String(a.company_id) === String(currentEmployerId))) ||
+                    (a.company && a.company.toLowerCase() === currentEmployerName.toLowerCase())
+                );
             } else {
                 const all = JSON.parse(localStorage.getItem('smarthire_applications') || '[]');
-                apps = all.filter(a => a.company && a.company.toLowerCase() === currentEmployerName.toLowerCase());
+                apps = all.filter(a => 
+                    (currentEmployerId && (String(a.companyId) === String(currentEmployerId) || String(a.company_id) === String(currentEmployerId))) ||
+                    (a.company && a.company.toLowerCase() === currentEmployerName.toLowerCase())
+                );
             }
 
             if (filterJobId) {
-                apps = apps.filter(a => String(a.jobId) === String(filterJobId));
+                apps = apps.filter(a => String(a.jobId || a.job_id) === String(filterJobId));
             }
 
             cachedApplicationsList = apps;
@@ -2061,8 +2076,8 @@
 
             if (window.db && typeof window.db.fetchApplicationsFromSupabase === 'function') {
                 window.db.fetchApplicationsFromSupabase().then(() => {
-                    const fresh = window.db.getApplicationsForCompany ? window.db.getApplicationsForCompany(currentEmployerName, currentEmployerEmail) : [];
-                    cachedApplicationsList = filterJobId ? fresh.filter(a => String(a.jobId) === String(filterJobId)) : fresh;
+                    const fresh = window.db.getApplicationsForCompany ? window.db.getApplicationsForCompany(currentEmployerId, currentEmployerName, currentEmployerEmail) : [];
+                    cachedApplicationsList = filterJobId ? fresh.filter(a => String(a.jobId || a.job_id) === String(filterJobId)) : fresh;
                     updateApplicantFilterCounts();
                     renderApplicantsTable();
                 });
@@ -2220,6 +2235,12 @@
                 return;
             }
 
+            if (q.id) {
+                currentEmployerId = q.id;
+            } else if (user) {
+                currentEmployerId = user.companyId || user.company_id || user.id || '';
+            }
+
             if (q.name) {
                 currentEmployerName = decodeURIComponent(q.name);
             } else if (user) {
@@ -2239,14 +2260,14 @@
             // Load Jobs & Applicants strictly for this company
             if (window.db) {
                 const updateMetrics = () => {
-                    const companyJobs = window.db.getJobsForCompany ? window.db.getJobsForCompany(currentEmployerName, currentEmployerEmail) : [];
+                    const companyJobs = window.db.getJobsForCompany ? window.db.getJobsForCompany(currentEmployerId, currentEmployerName, currentEmployerEmail) : [];
 
                     // Update Metrics
                     document.getElementById('kpi-posted-jobs').textContent = companyJobs.length;
                     document.getElementById('hero-stat-jobs').textContent = companyJobs.length;
 
                     // Load Applications strictly for this company
-                    const companyApps = window.db.getApplicationsForCompany ? window.db.getApplicationsForCompany(currentEmployerName, currentEmployerEmail) : [];
+                    const companyApps = window.db.getApplicationsForCompany ? window.db.getApplicationsForCompany(currentEmployerId, currentEmployerName, currentEmployerEmail) : [];
                     const pending = companyApps.filter(a => !a.status || a.status === 'Applied' || a.status === 'Under Review').length;
                     const selected = companyApps.filter(a => a.status === 'Shortlisted' || a.status === 'Interview' || a.status === 'Hired' || a.status === 'Offered').length;
                     const rejected = companyApps.filter(a => a.status === 'Rejected').length;
@@ -2333,8 +2354,11 @@
                 if (!title) return;
 
                 if (window.db && typeof window.db.saveJob === 'function') {
+                    const jobId = window.db.generateUUID ? window.db.generateUUID() : ('job_' + Date.now());
                     const newJob = {
-                        id: 'job_' + Date.now(),
+                        id: jobId,
+                        companyId: currentEmployerId,
+                        company_id: currentEmployerId,
                         title: title,
                         company: company || currentEmployerName,
                         companyEmail: currentEmployerEmail,
@@ -2355,6 +2379,8 @@
                     showToast(`Vacancy "${title}" successfully published!`, 'success');
                     closeModal('modal-post-job');
                     document.getElementById('form-create-job')?.reset();
+                    const compInput = document.getElementById('job-company');
+                    if (compInput) compInput.value = currentEmployerName;
                     loadCompanyDashboard();
                 }
             });

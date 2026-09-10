@@ -224,17 +224,25 @@ class AuthService {
                     experience_years: 'Fresher'
                 });
             } else if (normalizedRole === 'company') {
-                await this.supabaseClient.from('companies').upsert({
-                    user_id: userId,
-                    company_name: fullName.trim(),
-                    contact_phone: phone ? phone.trim() : '',
-                    status: 'approved'
-                });
+                try {
+                    await this.supabaseClient.from('companies').upsert({
+                        user_id: userId,
+                        company_name: fullName.trim(),
+                        contact_phone: phone ? phone.trim() : '',
+                        status: 'approved'
+                    });
+                } catch (cErr) {
+                    console.warn("Companies table sync notice:", cErr);
+                }
             }
         } catch (e) {}
 
         const userObj = {
             id: userId,
+            companyId: userId,
+            company_id: userId,
+            companyName: fullName.trim(),
+            company: fullName.trim(),
             fullName: fullName.trim(),
             full_name: fullName.trim(),
             email: normalizedEmail,
@@ -456,16 +464,54 @@ class AuthService {
             } catch (e) {}
         }
 
+        const normalizedRole = this._normalizeRole(profile.role || meta.role);
+        const resolvedName = profile.full_name || meta.full_name || authUser.email.split('@')[0];
+
         const userObj = {
             id: profile.id || authUser.id,
-            fullName: profile.full_name || meta.full_name || authUser.email.split('@')[0],
-            full_name: profile.full_name || meta.full_name || authUser.email.split('@')[0],
+            companyId: profile.id || authUser.id,
+            company_id: profile.id || authUser.id,
+            companyName: resolvedName,
+            company: resolvedName,
+            fullName: resolvedName,
+            full_name: resolvedName,
             email: profile.email || authUser.email,
             phone: profile.phone || meta.phone || '',
-            role: this._normalizeRole(profile.role || meta.role),
+            role: normalizedRole,
             location: profile.location || meta.location || '',
             profile_image: profile.profile_image || ''
         };
+
+        // If company role, ensure company record exists and get company_id if assigned
+        if (normalizedRole === 'company' && this.supabaseClient) {
+            try {
+                const { data: compRow } = await this.supabaseClient
+                    .from('companies')
+                    .select('company_id, company_name')
+                    .eq('user_id', userObj.id)
+                    .maybeSingle();
+
+                if (compRow) {
+                    if (compRow.company_id) {
+                        userObj.companyId = compRow.company_id;
+                        userObj.company_id = compRow.company_id;
+                    }
+                    if (compRow.company_name) {
+                        userObj.companyName = compRow.company_name;
+                        userObj.company = compRow.company_name;
+                    }
+                } else {
+                    await this.supabaseClient.from('companies').upsert({
+                        user_id: userObj.id,
+                        company_name: userObj.companyName,
+                        contact_phone: userObj.phone || '',
+                        status: 'approved'
+                    });
+                }
+            } catch (cErr) {
+                console.warn("Company table profile sync notice:", cErr);
+            }
+        }
 
         this.currentUser = userObj;
         return userObj;
