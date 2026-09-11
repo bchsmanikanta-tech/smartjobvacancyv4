@@ -15,9 +15,48 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Core & Home Styles -->
-    <link rel="stylesheet" href="css/style.css?v=20260911_1">
-    <link rel="stylesheet" href="css/home.css?v=20260911_1">
-    <script src="js/password-toggle.js?v=20260911_1"></script>
+    <link rel="stylesheet" href="css/style.css?v=20260911_3">
+    <link rel="stylesheet" href="css/home.css?v=20260911_3">
+    <script src="js/password-toggle.js?v=20260911_3"></script>
+    <script>
+    function togglePasswordVisibility(trigger, event) {
+        var e = event || window.event;
+        if (e) {
+            if (e.stopPropagation) e.stopPropagation();
+            if (e.preventDefault) e.preventDefault();
+            e.cancelBubble = true;
+        }
+        if (!trigger) return;
+        var btn = (trigger instanceof HTMLElement) ? (trigger.closest('.toggle-password') || trigger) : document.querySelector('[data-target="' + trigger + '"]');
+        if (!btn) return;
+        var now = Date.now();
+        if (btn._lastToggled && (now - btn._lastToggled < 250)) return;
+        btn._lastToggled = now;
+
+        var targetId = btn.getAttribute('data-target');
+        var input = targetId ? document.getElementById(targetId) : null;
+        if (!input) {
+            var wrapper = btn.closest('.input-wrapper') || btn.parentElement;
+            if (wrapper) input = wrapper.querySelector('input');
+        }
+        if (!input) return;
+
+        var isPassword = (input.type === 'password' || input.getAttribute('type') === 'password');
+        var newType = isPassword ? 'text' : 'password';
+        input.setAttribute('type', newType);
+        input.type = newType;
+
+        var newLabel = isPassword ? 'Hide Password' : 'Show Password';
+        btn.setAttribute('title', newLabel);
+        btn.setAttribute('aria-label', newLabel);
+
+        var icon = btn.querySelector('i');
+        if (icon) {
+            icon.className = isPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+        }
+        input.focus();
+    }
+    </script>
 </head>
 <body>
     <!-- Background Animated Shapes -->
@@ -668,7 +707,7 @@
                         <div class="input-wrapper">
                             <i class="fa-solid fa-lock input-icon"></i>
                             <input type="password" id="modal-login-password" placeholder="••••••••" required autocomplete="current-password">
-                            <button type="button" class="toggle-password" data-target="modal-login-password" onclick="togglePasswordVisibility(this)" aria-label="Toggle password visibility" title="Show Password"><i class="fa-solid fa-eye"></i></button>
+                            <button type="button" class="toggle-password" data-target="modal-login-password" onclick="togglePasswordVisibility(this, event)" aria-label="Toggle password visibility" title="Show Password"><i class="fa-solid fa-eye"></i></button>
                         </div>
                         <span class="field-error" id="modal-login-password-error"></span>
                     </div>
@@ -731,7 +770,7 @@
                         <div class="input-wrapper">
                             <i class="fa-solid fa-lock input-icon"></i>
                             <input type="password" id="modal-reg-password" placeholder="••••••••" required autocomplete="new-password">
-                            <button type="button" class="toggle-password" data-target="modal-reg-password" onclick="togglePasswordVisibility(this)" aria-label="Toggle password visibility" title="Show Password"><i class="fa-solid fa-eye"></i></button>
+                            <button type="button" class="toggle-password" data-target="modal-reg-password" onclick="togglePasswordVisibility(this, event)" aria-label="Toggle password visibility" title="Show Password"><i class="fa-solid fa-eye"></i></button>
                         </div>
                         <span class="field-error" id="modal-reg-password-error"></span>
                     </div>
@@ -741,7 +780,7 @@
                         <div class="input-wrapper">
                             <i class="fa-solid fa-shield-heart input-icon"></i>
                             <input type="password" id="modal-reg-confirm-password" placeholder="••••••••" required autocomplete="new-password">
-                            <button type="button" class="toggle-password" data-target="modal-reg-confirm-password" onclick="togglePasswordVisibility(this)" aria-label="Toggle password visibility" title="Show Password"><i class="fa-solid fa-eye"></i></button>
+                            <button type="button" class="toggle-password" data-target="modal-reg-confirm-password" onclick="togglePasswordVisibility(this, event)" aria-label="Toggle password visibility" title="Show Password"><i class="fa-solid fa-eye"></i></button>
                         </div>
                         <span class="field-error" id="modal-reg-confirm-password-error"></span>
                     </div>
