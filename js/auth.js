@@ -225,12 +225,20 @@ class AuthService {
                 });
             } else if (normalizedRole === 'company') {
                 try {
-                    await this.supabaseClient.from('companies').upsert({
-                        user_id: userId,
-                        company_name: fullName.trim(),
-                        contact_phone: phone ? phone.trim() : '',
-                        status: 'approved'
-                    });
+                    const { data: existingRows } = await this.supabaseClient
+                        .from('companies')
+                        .select('company_id')
+                        .eq('user_id', userId)
+                        .limit(1);
+
+                    if (!existingRows || existingRows.length === 0) {
+                        await this.supabaseClient.from('companies').insert({
+                            user_id: userId,
+                            company_name: fullName.trim(),
+                            contact_phone: phone ? phone.trim() : '',
+                            status: 'approved'
+                        });
+                    }
                 } catch (cErr) {
                     console.warn("Companies table sync notice:", cErr);
                 }
@@ -518,13 +526,14 @@ class AuthService {
         // If company role, ensure company record exists and get company_id if assigned
         if (normalizedRole === 'company' && this.supabaseClient) {
             try {
-                const { data: compRow } = await this.supabaseClient
+                const { data: compRows, error: compErr } = await this.supabaseClient
                     .from('companies')
                     .select('company_id, company_name')
                     .eq('user_id', userObj.id)
-                    .maybeSingle();
+                    .order('created_at', { ascending: false });
 
-                if (compRow) {
+                if (!compErr && Array.isArray(compRows) && compRows.length > 0) {
+                    const compRow = compRows[0];
                     if (compRow.company_id) {
                         userObj.companyId = compRow.company_id;
                         userObj.company_id = compRow.company_id;
@@ -533,13 +542,26 @@ class AuthService {
                         userObj.companyName = compRow.company_name;
                         userObj.company = compRow.company_name;
                     }
-                } else {
-                    await this.supabaseClient.from('companies').upsert({
+                    // Prune duplicate records if any exist in the database for this user
+                    if (compRows.length > 1) {
+                        const extraIds = compRows.slice(1).map(r => r.company_id).filter(Boolean);
+                        if (extraIds.length > 0) {
+                            this.supabaseClient.from('companies').delete().in('company_id', extraIds).then(() => {}).catch(() => {});
+                        }
+                    }
+                } else if (!compErr && (!compRows || compRows.length === 0)) {
+                    // Only insert if absolutely no record exists for this company user
+                    const { data: insertedComp } = await this.supabaseClient.from('companies').insert({
                         user_id: userObj.id,
-                        company_name: userObj.companyName,
+                        company_name: userObj.companyName || 'Company',
                         contact_phone: userObj.phone || '',
                         status: 'approved'
-                    });
+                    }).select('company_id').single();
+
+                    if (insertedComp?.company_id) {
+                        userObj.companyId = insertedComp.company_id;
+                        userObj.company_id = insertedComp.company_id;
+                    }
                 }
             } catch (cErr) {
                 console.warn("Company table profile sync notice:", cErr);
@@ -836,6 +858,8 @@ class AuthService {
 
                 // Process Supabase 'companies' table joined with user login emails
                 if (Array.isArray(compsRes.data)) {
+                    const duplicateIdsToDelete = [];
+
                     compsRes.data.forEach(c => {
                         const uid = c.user_id;
                         const matchedUser = userById.get(uid) || {};
@@ -844,21 +868,51 @@ class AuthService {
                         const location = c.location || matchedUser.location || 'Remote';
                         const name = (c.company_name || matchedUser.full_name || matchedUser.name || 'Company').trim();
 
-                        if (!email || !deletedEmails.includes(email)) {
-                            const compKey = c.company_id || c.id || (name.toLowerCase() + '_' + email);
-                            companiesMap.set(compKey, {
-                                id: c.company_id || c.id || compKey,
-                                userId: uid,
-                                name: name,
-                                email: email || 'No email registered',
-                                phone: phone || 'N/A',
-                                location: location,
-                                industry: c.industry || 'Technology',
-                                status: c.status || 'approved',
-                                createdAt: c.created_at || matchedUser.created_at || new Date().toISOString()
-                            });
+                        if (email && deletedEmails.includes(email)) return;
+
+                        // Check if this company is already in companiesMap by user_id, email, or name
+                        let matchedExisting = null;
+                        for (let existing of companiesMap.values()) {
+                            const matchUid = uid && existing.userId && existing.userId === uid;
+                            const matchEmail = email && existing.email && existing.email !== 'No email registered' && existing.email.toLowerCase() === email;
+                            const matchName = name && existing.name && existing.name.toLowerCase() === name.toLowerCase();
+
+                            if (matchUid || matchEmail || matchName) {
+                                matchedExisting = existing;
+                                break;
+                            }
                         }
+
+                        if (matchedExisting) {
+                            if ((!matchedExisting.phone || matchedExisting.phone === 'N/A') && phone) matchedExisting.phone = phone;
+                            if ((!matchedExisting.location || matchedExisting.location === 'Remote') && location && location !== 'Remote') matchedExisting.location = location;
+                            if ((!matchedExisting.email || matchedExisting.email === 'No email registered') && email) matchedExisting.email = email;
+                            if (!matchedExisting.userId && uid) matchedExisting.userId = uid;
+
+                            if (c.company_id && c.company_id !== matchedExisting.id) {
+                                duplicateIdsToDelete.push(c.company_id);
+                            }
+                            return;
+                        }
+
+                        const compKey = uid ? `uid_${uid}` : (email ? `email_${email}` : `name_${name.toLowerCase()}`);
+                        companiesMap.set(compKey, {
+                            id: c.company_id || c.id || compKey,
+                            userId: uid,
+                            name: name,
+                            email: email || 'No email registered',
+                            phone: phone || 'N/A',
+                            location: location,
+                            industry: c.industry || 'Technology',
+                            status: c.status || 'approved',
+                            createdAt: c.created_at || matchedUser.created_at || new Date().toISOString()
+                        });
                     });
+
+                    // Cleanup duplicate company rows in Supabase background
+                    if (duplicateIdsToDelete.length > 0) {
+                        this.supabaseClient.from('companies').delete().in('company_id', duplicateIdsToDelete).then(() => {}).catch(() => {});
+                    }
                 }
             } catch (e) {
                 console.warn("Supabase companies lookup notice:", e);
@@ -871,25 +925,32 @@ class AuthService {
             allUsers.forEach(u => {
                 const isEmployer = u.role === 'employer' || u.role === 'company';
                 const email = (u.email || '').toLowerCase().trim();
-                if (isEmployer && email && !deletedEmails.includes(email)) {
+                const name = (u.fullName || u.name || (email ? email.split('@')[0] : 'Company')).trim();
+                if (isEmployer && (!email || !deletedEmails.includes(email))) {
                     let alreadyAdded = false;
                     for (let existing of companiesMap.values()) {
-                        if ((u.id && existing.userId === u.id) || (existing.email && existing.email.toLowerCase() === email)) {
+                        const matchUid = u.id && existing.userId && existing.userId === u.id;
+                        const matchEmail = email && existing.email && existing.email !== 'No email registered' && existing.email.toLowerCase() === email;
+                        const matchName = name && existing.name && existing.name.toLowerCase() === name.toLowerCase();
+
+                        if (matchUid || matchEmail || matchName) {
                             alreadyAdded = true;
-                            if (existing.phone === 'N/A' && u.phone) existing.phone = u.phone;
-                            if (existing.location === 'Remote' && u.location) existing.location = u.location;
+                            if ((!existing.phone || existing.phone === 'N/A') && u.phone) existing.phone = u.phone;
+                            if ((!existing.location || existing.location === 'Remote') && u.location) existing.location = u.location;
+                            if (!existing.userId && u.id) existing.userId = u.id;
                             break;
                         }
                     }
 
                     if (!alreadyAdded) {
                         const savedProf = JSON.parse(localStorage.getItem(`company_profile_${email}`) || '{}');
-                        const name = (savedProf.name || u.fullName || u.name || email.split('@')[0]).trim();
-                        companiesMap.set(u.id || email, {
-                            id: u.id || email,
+                        const compName = (savedProf.name || name).trim();
+                        const key = u.id ? `uid_${u.id}` : (email ? `email_${email}` : `name_${compName.toLowerCase()}`);
+                        companiesMap.set(key, {
+                            id: u.id || email || key,
                             userId: u.id,
-                            name: name,
-                            email: email,
+                            name: compName,
+                            email: email || 'No email registered',
                             phone: savedProf.phone || u.phone || 'N/A',
                             location: savedProf.location || u.location || 'Remote',
                             industry: savedProf.industry || 'Technology',
@@ -910,18 +971,24 @@ class AuthService {
                 try {
                     const prof = JSON.parse(localStorage.getItem(k) || '{}');
                     const email = (prof.email || k.replace('company_profile_', '')).toLowerCase().trim();
+                    const profName = (prof.name || (email ? email.split('@')[0] : 'Company')).trim();
                     if (email && !deletedEmails.includes(email)) {
                         let exists = false;
                         for (let existing of companiesMap.values()) {
-                            if (existing.email && existing.email.toLowerCase() === email) {
+                            if (
+                                (existing.email && existing.email.toLowerCase() === email) ||
+                                (profName && existing.name && existing.name.toLowerCase() === profName.toLowerCase())
+                            ) {
                                 exists = true;
+                                if ((!existing.phone || existing.phone === 'N/A') && prof.phone) existing.phone = prof.phone;
+                                if ((!existing.location || existing.location === 'Remote') && prof.location) existing.location = prof.location;
                                 break;
                             }
                         }
                         if (!exists) {
-                            companiesMap.set(email, {
+                            companiesMap.set(`prof_${email}`, {
                                 id: email,
-                                name: prof.name || email.split('@')[0],
+                                name: profName,
                                 email: email,
                                 phone: prof.phone || 'N/A',
                                 location: prof.location || 'Remote',
@@ -958,24 +1025,63 @@ class AuthService {
     /**
      * Update verification badge status for a company in local storage and Supabase
      */
-    async updateCompanyStatus(companyIdentifier, newStatus) {
+    async updateCompanyStatus(companyIdentifier, newStatus, companyName) {
         const normalized = (companyIdentifier || '').trim().toLowerCase();
+        const normName = (companyName || '').trim().toLowerCase();
         let stored = JSON.parse(localStorage.getItem('smartjob_company_verifications') || '{}');
-        stored[normalized] = newStatus;
+        if (normalized) stored[normalized] = newStatus;
+        if (normName) stored[normName] = newStatus;
         localStorage.setItem('smartjob_company_verifications', JSON.stringify(stored));
 
         if (this.supabaseClient) {
             try {
-                await this.supabaseClient.from('companies').update({ status: newStatus }).or(`contact_email.eq.${normalized},company_name.ilike.${normalized}`);
+                if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalized)) {
+                    await this.supabaseClient.from('companies').update({ status: newStatus }).or(`company_id.eq.${normalized},user_id.eq.${normalized}`);
+                } else if (normalized.includes('@')) {
+                    const { data: uData } = await this.supabaseClient.from('profiles').select('id').ilike('email', normalized).limit(1);
+                    if (uData && uData.length > 0 && uData[0].id) {
+                        await this.supabaseClient.from('companies').update({ status: newStatus }).eq('user_id', uData[0].id);
+                    }
+                }
             } catch (e) {}
-            try {
-                await this.supabaseClient.from('profiles').update({ status: newStatus }).ilike('email', normalized);
-            } catch (e) {}
-            try {
-                await this.supabaseClient.from('users').update({ status: newStatus }).ilike('email', normalized);
-            } catch (e) {}
+
+            if (normName) {
+                try {
+                    await this.supabaseClient.from('companies').update({ status: newStatus }).ilike('company_name', normName);
+                } catch (e) {}
+            }
+            if (normalized.includes('@')) {
+                try {
+                    await this.supabaseClient.from('profiles').update({ status: newStatus }).ilike('email', normalized);
+                } catch (e) {}
+                try {
+                    await this.supabaseClient.from('users').update({ status: newStatus }).ilike('email', normalized);
+                } catch (e) {}
+            }
         }
         return { success: true, status: newStatus };
+    }
+
+    /**
+     * Delete corporate company entity across database and local storage
+     */
+    async deleteCompany(identifier, email, name) {
+        if (email) {
+            await this.deleteUser(email);
+        }
+        if (this.supabaseClient) {
+            if (identifier && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier)) {
+                try {
+                    await this.supabaseClient.from('companies').delete().or(`company_id.eq.${identifier},user_id.eq.${identifier}`);
+                } catch (e) {}
+            }
+            if (name) {
+                try {
+                    await this.supabaseClient.from('companies').delete().ilike('company_name', name.trim());
+                } catch (e) {}
+            }
+        }
+        return { success: true };
     }
 
     /**
@@ -1043,6 +1149,12 @@ class AuthService {
 
         // 3. Delete from Supabase Cloud tables
         if (this.supabaseClient) {
+            let matchedUserId = null;
+            try {
+                const { data: pData } = await this.supabaseClient.from('profiles').select('id').ilike('email', normalized).limit(1);
+                if (pData && pData.length > 0) matchedUserId = pData[0].id;
+            } catch (e) {}
+
             try {
                 await this.supabaseClient.from('profiles').delete().ilike('email', normalized);
             } catch (e) {}
@@ -1055,8 +1167,13 @@ class AuthService {
                 await this.supabaseClient.from('job_seekers').delete().ilike('email', normalized);
             } catch (e) {}
 
+            if (matchedUserId) {
+                try {
+                    await this.supabaseClient.from('companies').delete().eq('user_id', matchedUserId);
+                } catch (e) {}
+            }
             try {
-                await this.supabaseClient.from('companies').delete().ilike('email', normalized);
+                await this.supabaseClient.from('companies').delete().ilike('company_name', normalized);
             } catch (e) {}
         }
 

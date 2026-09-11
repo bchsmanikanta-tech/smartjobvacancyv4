@@ -1439,8 +1439,8 @@
                     <td>
                         <div style="display: flex; gap: 6px;">
                             ${!isVerified 
-                                ? `<button class="btn-action-sm" onclick="handleCompanyStatusToggle('${safeEmail || safeName}', 'approved')" style="background:#10b981; color:#fff;" title="Approve Golden Badge"><i class="fa-solid fa-check"></i> Approve</button>`
-                                : `<button class="btn-action-sm" onclick="handleCompanyStatusToggle('${safeEmail || safeName}', 'pending')" style="color:#ef4444; border-color: rgba(239,68,68,0.3);" title="Revoke Golden Badge"><i class="fa-solid fa-ban"></i> Revoke</button>`
+                                ? `<button class="btn-action-sm" onclick="handleCompanyStatusToggle('${safeEmail || safeName}', 'approved', '${safeName}')" style="background:#10b981; color:#fff;" title="Approve Golden Badge"><i class="fa-solid fa-check"></i> Approve</button>`
+                                : `<button class="btn-action-sm" onclick="handleCompanyStatusToggle('${safeEmail || safeName}', 'pending', '${safeName}')" style="color:#ef4444; border-color: rgba(239,68,68,0.3);" title="Revoke Golden Badge"><i class="fa-solid fa-ban"></i> Revoke</button>`
                             }
                             <button class="btn-action-sm" onclick="viewCompanyJobs('${safeName}')" title="View company vacancies"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
                         </div>
@@ -1693,11 +1693,16 @@
             const rawUsers = JSON.parse(localStorage.getItem('smartjob_users_db') || '[]');
             const verifications = JSON.parse(localStorage.getItem('smartjob_company_verifications') || '{}');
             const allJobs = (window.db && typeof window.db.getJobs === 'function') ? (window.db.getJobs() || []) : JSON.parse(localStorage.getItem('smarthire_jobs') || '[]');
+            const seen = new Set();
 
             rawUsers.forEach(u => {
                 if (u.role === 'employer' || u.role === 'company') {
                     const email = (u.email || '').toLowerCase().trim();
                     const name = (u.fullName || u.name || (email ? email.split('@')[0] : 'Company')).trim();
+                    const key = email || name.toLowerCase();
+                    if (seen.has(key)) return;
+                    seen.add(key);
+
                     const savedProf = JSON.parse(localStorage.getItem(`company_profile_${email}`) || '{}');
                     const status = verifications[email] || verifications[name.toLowerCase()] || u.status || 'approved';
 
@@ -1708,6 +1713,8 @@
                     }).length;
 
                     list.push({
+                        id: u.id || email,
+                        userId: u.id,
                         name: savedProf.name || name,
                         email: email,
                         phone: savedProf.phone || u.phone || '',
@@ -1775,6 +1782,7 @@
                 const isVerified = c.status === 'approved';
                 const safeName = (c.name || 'Company').replace(/'/g, "\\'");
                 const safeEmail = (c.email || '').replace(/'/g, "\\'");
+                const safeId = (c.userId || c.id || '').replace(/'/g, "\\'");
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>
@@ -1792,10 +1800,10 @@
                     <td>
                         <div style="display: flex; gap: 6px;">
                             ${!isVerified 
-                                ? `<button class="btn-action-sm" onclick="handleCompanyStatusToggle('${safeEmail || safeName}', 'approved')" style="background:#10b981; color:#fff;" title="Grant Golden Badge"><i class="fa-solid fa-check"></i> Approve</button>`
-                                : `<button class="btn-action-sm" onclick="handleCompanyStatusToggle('${safeEmail || safeName}', 'pending')" style="color:#ef4444; border-color: rgba(239,68,68,0.3);" title="Revoke Golden Badge"><i class="fa-solid fa-ban"></i> Revoke</button>`
+                                ? `<button class="btn-action-sm" onclick="handleCompanyStatusToggle('${safeEmail || safeName}', 'approved', '${safeName}')" style="background:#10b981; color:#fff;" title="Grant Golden Badge"><i class="fa-solid fa-check"></i> Approve</button>`
+                                : `<button class="btn-action-sm" onclick="handleCompanyStatusToggle('${safeEmail || safeName}', 'pending', '${safeName}')" style="color:#ef4444; border-color: rgba(239,68,68,0.3);" title="Revoke Golden Badge"><i class="fa-solid fa-ban"></i> Revoke</button>`
                             }
-                            <button class="btn-action-sm" onclick="handleDeleteCompany('${safeEmail}', '${safeName}')" style="color:#ef4444;" title="Delete Corporate Account"><i class="fa-solid fa-trash"></i></button>
+                            <button class="btn-action-sm" onclick="handleDeleteCompany('${safeEmail}', '${safeName}', '${safeId}')" style="color:#ef4444;" title="Delete Corporate Account"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </td>
                 `;
@@ -1803,25 +1811,28 @@
             });
         }
 
-        async function handleCompanyStatusToggle(identifier, newStatus) {
+        async function handleCompanyStatusToggle(identifier, newStatus, companyName) {
             const isApproved = newStatus === 'approved';
             if (window.auth && typeof window.auth.updateCompanyStatus === 'function') {
-                await window.auth.updateCompanyStatus(identifier, newStatus);
+                await window.auth.updateCompanyStatus(identifier, newStatus, companyName);
             } else {
                 let verifications = JSON.parse(localStorage.getItem('smartjob_company_verifications') || '{}');
-                verifications[identifier.toLowerCase()] = newStatus;
+                if (identifier) verifications[identifier.toLowerCase()] = newStatus;
+                if (companyName) verifications[companyName.toLowerCase()] = newStatus;
                 localStorage.setItem('smartjob_company_verifications', JSON.stringify(verifications));
             }
 
-            showToast(isApproved ? `⭐ Golden Badge Granted to ${identifier}` : `Badge Revoked for ${identifier}`, isApproved ? 'success' : 'info');
+            showToast(isApproved ? `⭐ Golden Badge Granted to ${companyName || identifier}` : `Badge Revoked for ${companyName || identifier}`, isApproved ? 'success' : 'info');
             await renderCompanyVerificationQueue();
             if (typeof refreshAdminData === 'function') refreshAdminData();
         }
 
-        async function handleDeleteCompany(email, name) {
+        async function handleDeleteCompany(email, name, id) {
             if (!confirm(`Are you sure you want to delete company "${name || email}"? This will remove their corporate account.`)) return;
 
-            if (email && window.auth && typeof window.auth.deleteUser === 'function') {
+            if (window.auth && typeof window.auth.deleteCompany === 'function') {
+                await window.auth.deleteCompany(id, email, name);
+            } else if (email && window.auth && typeof window.auth.deleteUser === 'function') {
                 await window.auth.deleteUser(email);
             }
 
