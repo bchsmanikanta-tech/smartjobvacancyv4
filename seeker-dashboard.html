@@ -1293,6 +1293,9 @@
                         </div>
                     </div>
 
+                    <!-- ACTION ALERT BANNER (INTERVIEW CALLS & OFFERS) -->
+                    <div id="history-action-banner" style="display: none;"></div>
+
                     <!-- VIEW 1: INTERACTIVE KANBAN BOARD -->
                     <div id="history-kanban-view" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; align-items: flex-start;">
                         <!-- Column 1: Applied -->
@@ -1355,10 +1358,11 @@
                             <table style="width: 100%; border-collapse: collapse; text-align: left;">
                                 <thead>
                                     <tr style="border-bottom: 1px solid var(--border-card); font-size: 0.78rem; color: var(--text-dim); text-transform: uppercase;">
-                                        <th style="padding: 12px 10px;">Role & Company</th>
-                                        <th style="padding: 12px 10px;">Location</th>
-                                        <th style="padding: 12px 10px;">Date Applied</th>
+                                        <th style="padding: 12px 10px;">Application & Role</th>
+                                        <th style="padding: 12px 10px;">Company</th>
                                         <th style="padding: 12px 10px;">Status</th>
+                                        <th style="padding: 12px 10px;">Interview Schedule</th>
+                                        <th style="padding: 12px 10px;">Offer Details</th>
                                         <th style="padding: 12px 10px; text-align: right;">Action</th>
                                     </tr>
                                 </thead>
@@ -2760,6 +2764,250 @@
         </div>
     </div>
 
+    <!-- =========================================================
+         MODAL: JOB SEEKER OFFICIAL INTERVIEW LETTER VIEW
+         ========================================================= -->
+    <div id="modal-seeker-interview-letter" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 2100; align-items: center; justify-content: center; padding: 20px;">
+        <div class="white-card" style="width: 100%; max-width: 680px; border-radius: 18px; border: 1px solid var(--border-card); box-shadow: 0 25px 50px rgba(0,0,0,0.25); max-height: 92vh; overflow-y: auto; padding: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; border-bottom: 1px solid var(--border-card); padding-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(2, 132, 199, 0.12); color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                        <i class="fa-regular fa-envelope-open"></i>
+                    </div>
+                    <div>
+                        <span style="font-size: 0.72rem; font-weight: 800; color: #0284c7; text-transform: uppercase;" id="seeker-int-company-tag">Company</span>
+                        <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-main); margin: 0;">Official Interview Call Letter</h3>
+                    </div>
+                </div>
+                <button type="button" onclick="closeSeekerModal('modal-seeker-interview-letter')" style="background: none; border: none; font-size: 1.3rem; color: var(--text-dim); cursor: pointer; padding: 4px;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Printable Letter Container -->
+            <div id="seeker-printable-interview-letter" style="background: var(--bg-body); border: 1px solid var(--border-card); border-radius: 12px; padding: 24px 28px; margin-bottom: 20px; font-size: 0.88rem; line-height: 1.6; color: var(--text-main);">
+                <!-- Header / Reference line -->
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-card); padding-bottom: 12px; margin-bottom: 16px;">
+                    <div>
+                        <div style="font-size: 1.15rem; font-weight: 900; color: var(--text-main);" id="int-letter-company-name">TechCorp Global</div>
+                        <div style="font-size: 0.75rem; color: var(--text-dim);" id="int-letter-app-id">Application Ref: #APP-1001</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.75rem; color: var(--text-muted);" id="int-letter-date-stamp">Date: Today</div>
+                        <div id="int-letter-status-pill" style="display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 800; background: rgba(2,132,199,0.12); color: #0284c7;">Scheduled</div>
+                    </div>
+                </div>
+
+                <p style="margin-bottom: 12px;">Dear <strong id="int-letter-candidate-name">Candidate</strong>,</p>
+
+                <p style="margin-bottom: 14px; color: var(--text-muted);">
+                    Thank you for your application for the position of <strong id="int-letter-position" style="color: var(--text-main);">Software Engineer</strong> at <span id="int-letter-company-name-body">TechCorp</span>. We were impressed with your credentials and would like to invite you for the next round of interview evaluation.
+                </p>
+
+                <!-- Interview Highlights Box -->
+                <div style="background: var(--bg-card); border: 1px solid var(--border-card); border-left: 4px solid #0284c7; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px;">
+                    <div style="font-weight: 800; color: var(--text-main); font-size: 0.9rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-regular fa-calendar-check" style="color: #0284c7;"></i> Interview Schedule &amp; Coordination Details
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.82rem;">
+                        <div>
+                            <span style="color: var(--text-dim); display: block; font-size: 0.72rem; text-transform: uppercase; font-weight: 700;">Interview Round</span>
+                            <strong id="int-letter-round">Technical Round 1</strong>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-dim); display: block; font-size: 0.72rem; text-transform: uppercase; font-weight: 700;">Interview Mode</span>
+                            <strong id="int-letter-mode">Virtual Video Conference</strong>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-dim); display: block; font-size: 0.72rem; text-transform: uppercase; font-weight: 700;">Date &amp; Time</span>
+                            <strong id="int-letter-datetime">15 Oct 2026 at 10:30 AM</strong>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-dim); display: block; font-size: 0.72rem; text-transform: uppercase; font-weight: 700;">Interviewer / Contact</span>
+                            <strong id="int-letter-interviewer">HR &amp; Technical Panel</strong>
+                        </div>
+                    </div>
+
+                    <!-- Meeting Link / Location Box -->
+                    <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-card); font-size: 0.82rem;">
+                        <span style="color: var(--text-dim); font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block;" id="int-letter-venue-label">Meeting Access Link / Venue</span>
+                        <div id="int-letter-venue-content" style="margin-top: 3px; word-break: break-all;">
+                            <a href="#" id="int-letter-link-anchor" target="_blank" style="color: #0284c7; font-weight: 800; text-decoration: underline;">https://meet.google.com/abc-defg-hij</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Instructions -->
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px;">
+                    <strong>Candidate Instructions:</strong>
+                    <ul style="padding-left: 18px; margin-top: 6px; margin-bottom: 0;">
+                        <li>Please join the meeting link 5 minutes prior to the scheduled start time.</li>
+                        <li>Ensure a stable internet connection, functional webcam, and microphone.</li>
+                        <li>Keep a soft copy of your resume and GitHub/project portfolio handy for screen sharing.</li>
+                        <li id="int-letter-custom-instructions">Standard technical problem solving and architecture review.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-top: 20px; font-size: 0.82rem; color: var(--text-muted); border-top: 1px solid var(--border-card); padding-top: 12px;">
+                    Sincerely,<br>
+                    <strong id="int-letter-signoff-company" style="color: var(--text-main);">Talent Acquisition Team</strong><br>
+                    <span style="font-size: 0.76rem; color: var(--text-dim);">SmartJob AI Placement Portal</span>
+                </div>
+            </div>
+
+            <!-- Action Controls Row -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <button type="button" onclick="printElement('seeker-printable-interview-letter')" class="btn-nav-action" style="background: transparent; border: 1px solid var(--border-card); color: var(--text-main); padding: 9px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-print"></i> Print / Save PDF
+                    </button>
+                </div>
+
+                <div style="display: flex; gap: 8px;" id="seeker-int-actions-group">
+                    <button type="button" id="btn-seeker-reject-int" onclick="submitSeekerInterviewResponse('Rejected')" class="btn-nav-action" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); padding: 9px 18px; border-radius: 8px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-xmark"></i> Decline
+                    </button>
+                    <button type="button" id="btn-seeker-accept-int" onclick="submitSeekerInterviewResponse('Accepted')" class="btn-nav-action" style="background: #10b981; color: #fff; border: none; padding: 9px 22px; border-radius: 8px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 14px rgba(16,185,129,0.3); display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-check"></i> Accept Interview
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL: JOB SEEKER OFFICIAL OFFER LETTER VIEW
+         ========================================================= -->
+    <div id="modal-seeker-offer-letter" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 2100; align-items: center; justify-content: center; padding: 20px;">
+        <div class="white-card" style="width: 100%; max-width: 740px; border-radius: 18px; border: 1px solid var(--border-card); box-shadow: 0 25px 50px rgba(0,0,0,0.25); max-height: 92vh; overflow-y: auto; padding: 32px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; border-bottom: 1px solid var(--border-card); padding-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(16, 185, 129, 0.12); color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                        <i class="fa-solid fa-trophy"></i>
+                    </div>
+                    <div>
+                        <span style="font-size: 0.72rem; font-weight: 800; color: #059669; text-transform: uppercase;" id="seeker-off-company-tag">Formal Employment Offer</span>
+                        <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-main); margin: 0;">Official Offer Letter</h3>
+                    </div>
+                </div>
+                <button type="button" onclick="closeSeekerModal('modal-seeker-offer-letter')" style="background: none; border: none; font-size: 1.3rem; color: var(--text-dim); cursor: pointer; padding: 4px;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Offer Accepted Highlight Box (Shown if Accepted) -->
+            <div id="offer-confirmed-joining-alert" style="display: none; background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); border-radius: 10px; padding: 12px 18px; margin-bottom: 16px; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-circle-check" style="color: #059669; font-size: 1.4rem;"></i>
+                    <div>
+                        <strong style="color: #065f46; font-size: 0.92rem; display: block;">Offer Officially Accepted!</strong>
+                        <span style="font-size: 0.8rem; color: #047857;">Your confirmed joining date is: <strong id="alert-confirmed-joining-date">01 Oct 2026</strong></span>
+                    </div>
+                </div>
+                <span style="background: #059669; color: #fff; font-size: 0.72rem; font-weight: 800; padding: 3px 10px; border-radius: 20px;">CONFIRMED</span>
+            </div>
+
+            <!-- Printable Offer Letter Container -->
+            <div id="seeker-printable-offer-letter" style="background: var(--bg-body); border: 1px solid var(--border-card); border-radius: 12px; padding: 26px 30px; margin-bottom: 20px; font-size: 0.88rem; line-height: 1.6; color: var(--text-main);">
+                <!-- Letterhead -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--border-card); padding-bottom: 14px; margin-bottom: 16px;">
+                    <div>
+                        <div style="font-size: 1.3rem; font-weight: 900; color: var(--text-main); letter-spacing: -0.5px;" id="off-letter-company-name">BVCITS Global Tech</div>
+                        <div style="font-size: 0.75rem; color: var(--text-dim);" id="off-letter-app-id">Application Ref: #APP-1001</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.76rem; color: var(--text-muted);" id="off-letter-date-stamp">Date: Today</div>
+                        <div id="off-letter-status-pill" style="display: inline-block; margin-top: 4px; padding: 2px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 800; background: rgba(245,158,11,0.12); color: #d97706;">Pending Review</div>
+                    </div>
+                </div>
+
+                <p style="margin-bottom: 12px;">Dear <strong id="off-letter-candidate-name">Candidate Name</strong>,</p>
+
+                <p style="margin-bottom: 14px; color: var(--text-muted);">
+                    Following your successful interview evaluations, on behalf of <strong id="off-letter-company-name-body" style="color: var(--text-main);">BVCITS Global Tech</strong>, we are thrilled to offer you the position of <strong id="off-letter-position" style="color: var(--text-main);">Software Development Engineer</strong>! We were thoroughly impressed by your technical mastery, creative problem-solving skills, and dedication.
+                </p>
+
+                <!-- Compensation & Terms Grid -->
+                <div style="background: var(--bg-card); border: 1px solid var(--border-card); border-radius: 10px; padding: 16px; margin-bottom: 16px;">
+                    <div style="font-weight: 800; color: var(--text-main); font-size: 0.88rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-award" style="color: #059669;"></i> Employment &amp; Compensation Terms
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; font-size: 0.82rem;">
+                        <div>
+                            <span style="color: var(--text-dim); display: block; font-size: 0.72rem; text-transform: uppercase; font-weight: 700;">Designation</span>
+                            <strong id="off-letter-role" style="font-size: 0.88rem; color: var(--text-main);">Software Engineer</strong>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-dim); display: block; font-size: 0.72rem; text-transform: uppercase; font-weight: 700;">Annual Salary (CTC)</span>
+                            <strong id="off-letter-ctc" style="font-size: 0.95rem; color: #059669; font-weight: 900;">₹8,50,000 Per Annum</strong>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-dim); display: block; font-size: 0.72rem; text-transform: uppercase; font-weight: 700;">Joining Date</span>
+                            <strong id="off-letter-joining-date" style="color: var(--text-main);">01 Oct 2026</strong>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-dim); display: block; font-size: 0.72rem; text-transform: uppercase; font-weight: 700;">Offer Expiry Date</span>
+                            <strong id="off-letter-expiry-date" style="color: #ef4444;">15 Sep 2026</strong>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-dim); display: block; font-size: 0.72rem; text-transform: uppercase; font-weight: 700;">Employment Type</span>
+                            <strong id="off-letter-type">Full-time Permanent</strong>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-dim); display: block; font-size: 0.72rem; text-transform: uppercase; font-weight: 700;">Work Location</span>
+                            <strong id="off-letter-location">Hyderabad, India (Hybrid)</strong>
+                        </div>
+                    </div>
+
+                    <!-- Additional Terms -->
+                    <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border-card); font-size: 0.8rem; color: var(--text-muted);">
+                        <strong>Terms &amp; Conditions:</strong>
+                        <p id="off-letter-terms" style="margin-top: 4px; margin-bottom: 0; font-size: 0.78rem;">Standard 3-month probation period applies. Standard intellectual property, confidentiality NDA, and background verification apply.</p>
+                    </div>
+                </div>
+
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 16px;">
+                    Please review this offer letter and submit your formal acceptance through your candidate portal before the specified expiry date. We look forward to welcoming you to our team!
+                </p>
+
+                <!-- Signature Block -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 20px; border-top: 1px solid var(--border-card); padding-top: 14px;">
+                    <div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Authorized Signatory:</div>
+                        <div style="font-family: cursive; font-size: 1.15rem; color: var(--text-main); margin-top: 2px;">Managing Director</div>
+                        <div style="font-weight: 800; font-size: 0.82rem; color: var(--text-main);" id="off-letter-signoff-company">BVCITS Global Tech</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="border: 2px solid #059669; color: #059669; font-weight: 900; font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Official Offer</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Controls Row -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <button type="button" onclick="printElement('seeker-printable-offer-letter')" class="btn-nav-action" style="background: transparent; border: 1px solid var(--border-card); color: var(--text-main); padding: 9px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-print"></i> Print / Save PDF
+                    </button>
+                </div>
+
+                <div style="display: flex; gap: 8px;" id="seeker-off-actions-group">
+                    <button type="button" id="btn-seeker-reject-offer" onclick="submitSeekerOfferResponse('Rejected')" class="btn-nav-action" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); padding: 9px 18px; border-radius: 8px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-xmark"></i> Decline Offer
+                    </button>
+                    <button type="button" id="btn-seeker-accept-offer" onclick="submitSeekerOfferResponse('Accepted')" class="btn-nav-action" style="background: linear-gradient(135deg, #059669, #10b981); color: #fff; border: none; padding: 9px 24px; border-radius: 8px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 14px rgba(16,185,129,0.3); display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-handshake"></i> Accept Job Offer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden input to store active application / interview / offer ID for modal actions -->
+    <input type="hidden" id="active-seeker-modal-app-id">
+    <input type="hidden" id="active-seeker-modal-int-id">
+    <input type="hidden" id="active-seeker-modal-off-id">
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js?v=20260825_3"></script>
@@ -3459,27 +3707,417 @@
             renderApplicationHistory();
         }
 
+        // =========================================================
+        // SEEKER INTERVIEW & OFFER LETTER MODAL HANDLERS
+        // =========================================================
+        function closeSeekerModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.style.display = 'none';
+        }
+
+        function printElement(elementId) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            const printWin = window.open('', '', 'width=800,height=900');
+            printWin.document.write(`
+                <html>
+                <head>
+                    <title>Official Letter</title>
+                    <style>
+                        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 40px; color: #1e293b; }
+                        h1, h2, h3 { color: #0f172a; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+                        th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; }
+                    </style>
+                </head>
+                <body>
+                    ${el.innerHTML}
+                </body>
+                </html>
+            `);
+            printWin.document.close();
+            printWin.focus();
+            setTimeout(() => {
+                printWin.print();
+                printWin.close();
+            }, 300);
+        }
+
+        function openSeekerInterviewLetter(appId) {
+            if (!appId) return;
+            const myApps = window.db?.getApplicationsForCandidate ? window.db.getApplicationsForCandidate(currentSeekerEmail) : JSON.parse(localStorage.getItem('smarthire_applications') || '[]');
+            const app = myApps.find(a => String(a.id) === String(appId) || String(a.application_id) === String(appId));
+            if (!app) {
+                showToast('Application not found', 'error');
+                return;
+            }
+
+            let intDetails = app.interviewDetails;
+            if (!intDetails && window.db?.getInterviewForApplication) {
+                intDetails = window.db.getInterviewForApplication(appId);
+            }
+            if (!intDetails) {
+                const allInts = window.db?.getInterviews ? window.db.getInterviews() : JSON.parse(localStorage.getItem('smarthire_interviews') || '[]');
+                intDetails = allInts.find(i => String(i.applicationId) === String(appId) || String(i.application_id) === String(appId));
+            }
+
+            if (!intDetails) {
+                intDetails = {
+                    id: app.interviewId || ('int_' + Date.now()),
+                    round: 'Technical Assessment Round',
+                    mode: 'Online Video (Google Meet)',
+                    date: 'Upcoming',
+                    time: '10:30 AM',
+                    meetingLink: 'https://meet.google.com/smarthire-interview',
+                    status: app.status === 'Interview Accepted' ? 'Accepted' : (app.status === 'Interview Rejected' ? 'Rejected' : 'Scheduled')
+                };
+            }
+
+            const compName = app.company || 'Hiring Organization';
+            const candidateName = app.applicantName || app.fullName || currentSeekerName;
+            const displayAppId = String(app.id || app.application_id || 'APP-1001').substring(0, 10);
+            const dateVal = intDetails.interviewDate || intDetails.date || 'Scheduled Date';
+            const timeVal = intDetails.interviewTime || intDetails.time || '10:30 AM';
+            const modeVal = intDetails.mode || intDetails.interview_mode || 'Online Video Conference';
+            const roundVal = intDetails.round || intDetails.interview_round || 'Technical Round 1';
+            const venueOrLink = intDetails.meetingLink || intDetails.location || 'https://meet.google.com/smarthire-call';
+
+            document.getElementById('seeker-int-company-tag').textContent = compName;
+            document.getElementById('int-letter-company-name').textContent = compName;
+            document.getElementById('int-letter-app-id').textContent = `Application Ref: #${displayAppId}`;
+            document.getElementById('int-letter-date-stamp').textContent = `Date: ${new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+            
+            const statusPill = document.getElementById('int-letter-status-pill');
+            if (statusPill) {
+                const currStatus = app.status || intDetails.status || 'Interview Scheduled';
+                statusPill.textContent = currStatus;
+                if (currStatus.includes('Accepted')) {
+                    statusPill.style.background = 'rgba(16,185,129,0.14)';
+                    statusPill.style.color = '#059669';
+                } else if (currStatus.includes('Rejected')) {
+                    statusPill.style.background = 'rgba(239,68,68,0.12)';
+                    statusPill.style.color = '#ef4444';
+                } else {
+                    statusPill.style.background = 'rgba(2,132,199,0.12)';
+                    statusPill.style.color = '#0284c7';
+                }
+            }
+
+            document.getElementById('int-letter-candidate-name').textContent = candidateName;
+            document.getElementById('int-letter-position').textContent = app.jobTitle || 'Designated Role';
+            document.getElementById('int-letter-company-name-body').textContent = compName;
+            document.getElementById('int-letter-round').textContent = roundVal;
+            document.getElementById('int-letter-mode').textContent = modeVal;
+            document.getElementById('int-letter-datetime').textContent = `${dateVal} at ${timeVal}`;
+            document.getElementById('int-letter-interviewer').textContent = intDetails.contactPerson || 'Recruitment & Technical Panel';
+            document.getElementById('int-letter-signoff-company').textContent = `${compName} Talent Team`;
+
+            const linkAnchor = document.getElementById('int-letter-link-anchor');
+            if (linkAnchor) {
+                if (venueOrLink.startsWith('http')) {
+                    linkAnchor.href = venueOrLink;
+                    linkAnchor.textContent = venueOrLink;
+                    document.getElementById('int-letter-venue-label').textContent = 'Virtual Meeting Link';
+                } else {
+                    linkAnchor.removeAttribute('href');
+                    linkAnchor.style.textDecoration = 'none';
+                    linkAnchor.textContent = venueOrLink;
+                    document.getElementById('int-letter-venue-label').textContent = 'Interview Location / Address';
+                }
+            }
+
+            // Save active IDs
+            document.getElementById('active-seeker-modal-app-id').value = String(app.id || app.application_id);
+            document.getElementById('active-seeker-modal-int-id').value = String(intDetails.id || intDetails.interview_id || app.interviewId || '');
+
+            // Show or hide Accept/Decline action buttons
+            const actionsGroup = document.getElementById('seeker-int-actions-group');
+            if (actionsGroup) {
+                if (app.status === 'Interview Scheduled' || intDetails.status === 'Scheduled' || intDetails.status === 'Pending') {
+                    actionsGroup.style.display = 'flex';
+                } else {
+                    actionsGroup.style.display = 'none';
+                }
+            }
+
+            document.getElementById('modal-seeker-interview-letter').style.display = 'flex';
+        }
+
+        async function submitSeekerInterviewResponse(response) {
+            const intId = document.getElementById('active-seeker-modal-int-id')?.value;
+            const appId = document.getElementById('active-seeker-modal-app-id')?.value;
+            if (!intId && !appId) return;
+
+            if (window.db && typeof window.db.respondToInterview === 'function') {
+                await window.db.respondToInterview(intId || appId, response);
+            } else {
+                const apps = JSON.parse(localStorage.getItem('smarthire_applications') || '[]');
+                const idx = apps.findIndex(a => String(a.id) === String(appId));
+                if (idx >= 0) {
+                    apps[idx].status = response === 'Accepted' ? 'Interview Accepted' : 'Interview Rejected';
+                    localStorage.setItem('smarthire_applications', JSON.stringify(apps));
+                }
+            }
+
+            showToast(`Interview invitation successfully ${response.toLowerCase()}!`, response === 'Accepted' ? 'success' : 'info');
+            closeSeekerModal('modal-seeker-interview-letter');
+            renderApplicationHistory();
+            loadSeekerDashboard();
+        }
+
+        async function submitSeekerInterviewResponseDirect(appId, response) {
+            const myApps = window.db?.getApplicationsForCandidate ? window.db.getApplicationsForCandidate(currentSeekerEmail) : JSON.parse(localStorage.getItem('smarthire_applications') || '[]');
+            const app = myApps.find(a => String(a.id) === String(appId) || String(a.application_id) === String(appId));
+            const intId = app?.interviewId || app?.interviewDetails?.id || appId;
+
+            if (window.db && typeof window.db.respondToInterview === 'function') {
+                await window.db.respondToInterview(intId, response);
+            } else {
+                const apps = JSON.parse(localStorage.getItem('smarthire_applications') || '[]');
+                const idx = apps.findIndex(a => String(a.id) === String(appId));
+                if (idx >= 0) {
+                    apps[idx].status = response === 'Accepted' ? 'Interview Accepted' : 'Interview Rejected';
+                    localStorage.setItem('smarthire_applications', JSON.stringify(apps));
+                }
+            }
+
+            showToast(`Interview invitation ${response.toLowerCase()}!`, response === 'Accepted' ? 'success' : 'info');
+            renderApplicationHistory();
+            loadSeekerDashboard();
+        }
+
+        function openSeekerOfferLetter(appId) {
+            if (!appId) return;
+            const myApps = window.db?.getApplicationsForCandidate ? window.db.getApplicationsForCandidate(currentSeekerEmail) : JSON.parse(localStorage.getItem('smarthire_applications') || '[]');
+            const app = myApps.find(a => String(a.id) === String(appId) || String(a.application_id) === String(appId));
+            if (!app) {
+                showToast('Application not found', 'error');
+                return;
+            }
+
+            let offDetails = app.offerDetails;
+            if (!offDetails && window.db?.getOfferForApplication) {
+                offDetails = window.db.getOfferForApplication(appId);
+            }
+            if (!offDetails) {
+                const allOffers = window.db?.getOfferLetters ? window.db.getOfferLetters() : JSON.parse(localStorage.getItem('smarthire_offers') || '[]');
+                offDetails = allOffers.find(o => String(o.applicationId) === String(appId) || String(o.application_id) === String(appId));
+            }
+
+            if (!offDetails) {
+                offDetails = {
+                    id: app.offerId || ('off_' + Date.now()),
+                    position: app.jobTitle || 'Software Engineer',
+                    salaryCtc: '₹8,50,000 Per Annum',
+                    joiningDate: app.confirmedJoiningDate || '01 Oct 2026',
+                    expiryDate: '15 Sep 2026',
+                    employmentType: 'Full-time Permanent',
+                    workLocation: 'Hyderabad, India (Hybrid)',
+                    additionalTerms: 'Standard 3-month probation and company policies apply.',
+                    status: app.status === 'Offer Accepted' ? 'Accepted' : (app.status === 'Offer Rejected' ? 'Rejected' : 'Pending')
+                };
+            }
+
+            const compName = app.company || offDetails.companyName || 'BVCITS Global Tech';
+            const candidateName = app.applicantName || app.fullName || currentSeekerName;
+            const displayAppId = String(app.id || app.application_id || 'APP-1001').substring(0, 10);
+            const joiningDateVal = offDetails.joiningDate || offDetails.joining_date || '01 Oct 2026';
+            const ctcVal = offDetails.salaryCtc || offDetails.salary_ctc || offDetails.ctc || '₹8,50,000 Per Annum';
+            const roleVal = offDetails.position || offDetails.role || app.jobTitle || 'Software Engineer';
+            const expiryVal = offDetails.expiryDate || offDetails.expiry_date || '15 Sep 2026';
+            const empTypeVal = offDetails.employmentType || offDetails.employment_type || 'Full-time Permanent';
+            const locVal = offDetails.workLocation || offDetails.work_location || 'Hyderabad, India (Hybrid)';
+            const termsVal = offDetails.additionalTerms || offDetails.additional_terms || 'Standard probation and NDA guidelines apply.';
+
+            document.getElementById('seeker-off-company-tag').textContent = `Official Employment Offer &bull; ${compName}`;
+            document.getElementById('off-letter-company-name').textContent = compName;
+            document.getElementById('off-letter-app-id').textContent = `Application Ref: #${displayAppId}`;
+            document.getElementById('off-letter-date-stamp').textContent = `Date: ${new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+
+            const statusPill = document.getElementById('off-letter-status-pill');
+            if (statusPill) {
+                const currStatus = app.status || offDetails.status || 'Offer Sent';
+                statusPill.textContent = currStatus;
+                if (currStatus.includes('Accepted') || currStatus === 'Hired') {
+                    statusPill.style.background = 'rgba(16,185,129,0.18)';
+                    statusPill.style.color = '#047857';
+                } else if (currStatus.includes('Rejected')) {
+                    statusPill.style.background = 'rgba(239,68,68,0.12)';
+                    statusPill.style.color = '#ef4444';
+                } else {
+                    statusPill.style.background = 'rgba(245,158,11,0.14)';
+                    statusPill.style.color = '#d97706';
+                }
+            }
+
+            document.getElementById('off-letter-candidate-name').textContent = candidateName;
+            document.getElementById('off-letter-company-name-body').textContent = compName;
+            document.getElementById('off-letter-position').textContent = roleVal;
+            document.getElementById('off-letter-role').textContent = roleVal;
+            document.getElementById('off-letter-ctc').textContent = ctcVal;
+            document.getElementById('off-letter-joining-date').textContent = joiningDateVal;
+            document.getElementById('off-letter-expiry-date').textContent = expiryVal;
+            document.getElementById('off-letter-type').textContent = empTypeVal;
+            document.getElementById('off-letter-location').textContent = locVal;
+            document.getElementById('off-letter-terms').textContent = termsVal;
+            document.getElementById('off-letter-signoff-company').textContent = compName;
+
+            // Save active IDs
+            document.getElementById('active-seeker-modal-app-id').value = String(app.id || app.application_id);
+            document.getElementById('active-seeker-modal-off-id').value = String(offDetails.id || offDetails.offer_id || app.offerId || '');
+
+            // Joining Alert banner if Accepted
+            const joinAlert = document.getElementById('offer-confirmed-joining-alert');
+            const joinDateDisplay = document.getElementById('alert-confirmed-joining-date');
+            const actionsGroup = document.getElementById('seeker-off-actions-group');
+
+            if (app.status === 'Offer Accepted' || offDetails.status === 'Accepted' || app.status === 'Hired') {
+                if (joinAlert) {
+                    joinAlert.style.display = 'flex';
+                    if (joinDateDisplay) joinDateDisplay.textContent = app.confirmedJoiningDate || joiningDateVal;
+                }
+                if (actionsGroup) actionsGroup.style.display = 'none';
+            } else if (app.status === 'Offer Sent' || offDetails.status === 'Pending') {
+                if (joinAlert) joinAlert.style.display = 'none';
+                if (actionsGroup) actionsGroup.style.display = 'flex';
+            } else {
+                if (joinAlert) joinAlert.style.display = 'none';
+                if (actionsGroup) actionsGroup.style.display = 'none';
+            }
+
+            document.getElementById('modal-seeker-offer-letter').style.display = 'flex';
+        }
+
+        async function submitSeekerOfferResponse(response) {
+            const offId = document.getElementById('active-seeker-modal-off-id')?.value;
+            const appId = document.getElementById('active-seeker-modal-app-id')?.value;
+            if (!offId && !appId) return;
+
+            if (window.db && typeof window.db.respondToOffer === 'function') {
+                await window.db.respondToOffer(offId || appId, response);
+            } else {
+                const apps = JSON.parse(localStorage.getItem('smarthire_applications') || '[]');
+                const idx = apps.findIndex(a => String(a.id) === String(appId));
+                if (idx >= 0) {
+                    apps[idx].status = response === 'Accepted' ? 'Offer Accepted' : 'Offer Rejected';
+                    localStorage.setItem('smarthire_applications', JSON.stringify(apps));
+                }
+            }
+
+            if (response === 'Accepted') {
+                showToast(`🎉 Congratulations! Job Offer officially accepted!`, 'success');
+            } else {
+                showToast(`Job offer was declined.`, 'info');
+            }
+
+            closeSeekerModal('modal-seeker-offer-letter');
+            renderApplicationHistory();
+            loadSeekerDashboard();
+        }
+
+        async function submitSeekerOfferResponseDirect(appId, response) {
+            const myApps = window.db?.getApplicationsForCandidate ? window.db.getApplicationsForCandidate(currentSeekerEmail) : JSON.parse(localStorage.getItem('smarthire_applications') || '[]');
+            const app = myApps.find(a => String(a.id) === String(appId) || String(a.application_id) === String(appId));
+            const offId = app?.offerId || app?.offerDetails?.id || appId;
+
+            if (window.db && typeof window.db.respondToOffer === 'function') {
+                await window.db.respondToOffer(offId, response);
+            } else {
+                const apps = JSON.parse(localStorage.getItem('smarthire_applications') || '[]');
+                const idx = apps.findIndex(a => String(a.id) === String(appId));
+                if (idx >= 0) {
+                    apps[idx].status = response === 'Accepted' ? 'Offer Accepted' : 'Offer Rejected';
+                    localStorage.setItem('smarthire_applications', JSON.stringify(apps));
+                }
+            }
+
+            if (response === 'Accepted') {
+                showToast(`🎉 Congratulations! Job Offer officially accepted!`, 'success');
+            } else {
+                showToast(`Job offer declined.`, 'info');
+            }
+
+            renderApplicationHistory();
+            loadSeekerDashboard();
+        }
+
+        // =========================================================
+        // APPLICATION HISTORY & KANBAN RENDERER
+        // =========================================================
         function renderApplicationHistory() {
             const tbody = document.getElementById('seeker-history-tbody');
             const kanbanApplied = document.getElementById('kanban-cards-applied');
             const kanbanReview = document.getElementById('kanban-cards-review');
             const kanbanInterview = document.getElementById('kanban-cards-interview');
             const kanbanOffered = document.getElementById('kanban-cards-offered');
+            const banner = document.getElementById('history-action-banner');
 
             const myApps = window.db?.getApplicationsForCandidate ? window.db.getApplicationsForCandidate(currentSeekerEmail) : JSON.parse(localStorage.getItem('smarthire_applications') || '[]').filter(a => a.applicantEmail && a.applicantEmail.toLowerCase() === currentSeekerEmail.toLowerCase());
 
-            // 1. Update Columns Count Badges
+            // 1. Check for Pending Actions to Show Urgent Top Banner
+            const pendingInterviewApp = myApps.find(a => a.status === 'Interview Scheduled');
+            const pendingOfferApp = myApps.find(a => a.status === 'Offer Sent');
+
+            if (banner) {
+                if (pendingOfferApp) {
+                    const offDetails = pendingOfferApp.offerDetails || {};
+                    banner.style.display = 'block';
+                    banner.innerHTML = `
+                        <div style="background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(5,150,105,0.08)); border: 1.5px solid #10b981; border-radius: 12px; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 4px 14px rgba(16,185,129,0.12);">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 40px; height: 40px; border-radius: 50%; background: #10b981; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                                    <i class="fa-solid fa-gift"></i>
+                                </div>
+                                <div>
+                                    <strong style="color: #065f46; font-size: 0.96rem; display: block;">🎉 Action Required: You have received an Official Job Offer!</strong>
+                                    <span style="font-size: 0.8rem; color: var(--text-muted);">${pendingOfferApp.company || 'Employer'} has offered you the role of <strong>${offDetails.position || pendingOfferApp.jobTitle}</strong> (CTC: <strong>${offDetails.salaryCtc || '₹8.5 LPA'}</strong>).</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button onclick="openSeekerOfferLetter('${pendingOfferApp.id}')" style="padding: 7px 16px; border-radius: 8px; background: #059669; color: #fff; border: none; font-weight: 800; font-size: 0.8rem; cursor: pointer;">
+                                    <i class="fa-regular fa-envelope-open"></i> Review &amp; Accept Offer
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else if (pendingInterviewApp) {
+                    const intDetails = pendingInterviewApp.interviewDetails || {};
+                    banner.style.display = 'block';
+                    banner.innerHTML = `
+                        <div style="background: linear-gradient(135deg, rgba(2,132,199,0.1), rgba(14,165,233,0.06)); border: 1.5px solid #0284c7; border-radius: 12px; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 4px 14px rgba(2,132,199,0.12);">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 40px; height: 40px; border-radius: 50%; background: #0284c7; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                                    <i class="fa-regular fa-calendar-check"></i>
+                                </div>
+                                <div>
+                                    <strong style="color: #0369a1; font-size: 0.96rem; display: block;">📅 Action Required: Interview Call Letter Scheduled!</strong>
+                                    <span style="font-size: 0.8rem; color: var(--text-muted);">${pendingInterviewApp.company || 'Employer'} invited you for <strong>${intDetails.round || 'Interview Round'}</strong> on ${intDetails.date || 'Upcoming'} at ${intDetails.time || '10:30 AM'}.</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button onclick="openSeekerInterviewLetter('${pendingInterviewApp.id}')" style="padding: 7px 16px; border-radius: 8px; background: #0284c7; color: #fff; border: none; font-weight: 800; font-size: 0.8rem; cursor: pointer;">
+                                    <i class="fa-regular fa-envelope-open"></i> View Call Letter &amp; Respond
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    banner.style.display = 'none';
+                }
+            }
+
+            // 2. Update Column Pipeline Counts
             const appliedList = myApps.filter(a => !a.status || a.status === 'Applied');
             const reviewList = myApps.filter(a => a.status === 'Under Review' || a.status === 'Shortlisted');
-            const interviewList = myApps.filter(a => a.status === 'Interview Scheduled' || a.status === 'Interview');
-            const offeredList = myApps.filter(a => a.status === 'Offered' || a.status === 'Hired');
+            const interviewList = myApps.filter(a => a.status === 'Interview Scheduled' || a.status === 'Interview Accepted' || a.status === 'Interview' || a.status === 'Interview Completed' || a.status === 'Interview Rejected');
+            const offeredList = myApps.filter(a => a.status === 'Selected' || a.status === 'Offer Sent' || a.status === 'Offer Accepted' || a.status === 'Offer Rejected' || a.status === 'Offered' || a.status === 'Hired');
 
             document.getElementById('kcol-cnt-applied') && (document.getElementById('kcol-cnt-applied').textContent = appliedList.length);
             document.getElementById('kcol-cnt-review') && (document.getElementById('kcol-cnt-review').textContent = reviewList.length);
             document.getElementById('kcol-cnt-interview') && (document.getElementById('kcol-cnt-interview').textContent = interviewList.length);
             document.getElementById('kcol-cnt-offered') && (document.getElementById('kcol-cnt-offered').textContent = offeredList.length);
 
-            // 2. Render Kanban Cards
+            // Helper to render kanban cards
             const renderKanbanList = (container, list, stageColor) => {
                 if (!container) return;
                 if (list.length === 0) {
@@ -3489,38 +4127,129 @@
                 container.innerHTML = '';
                 list.forEach(a => {
                     const card = document.createElement('div');
-                    card.style.cssText = `background: var(--bg-card); border: 1px solid var(--border-card); border-left: 3px solid ${stageColor}; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow-sm);`;
+                    card.style.cssText = `background: var(--bg-card); border: 1px solid var(--border-card); border-left: 3.5px solid ${stageColor}; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow-sm);`;
                     
                     const dateStr = a.appliedAt ? new Date(a.appliedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recent';
                     const score = a.matchScore || a.aiMatch || 88;
+                    const appIdDisplay = String(a.id || a.application_id || 'APP-1001').substring(0, 10);
+                    const appIdStr = String(a.id || a.application_id);
 
-                    let extraDetails = '';
-                    if (a.status === 'Interview Scheduled' && a.interviewDetails) {
-                        extraDetails = `
-                            <div style="background: rgba(14,165,233,0.08); border-radius: 6px; padding: 6px 8px; font-size: 0.72rem; color: #0284c7; margin-top: 4px;">
-                                <div><i class="fa-regular fa-calendar"></i> ${a.interviewDetails.date} at ${a.interviewDetails.time}</div>
-                                <a href="${a.interviewDetails.meetingLink || '#'}" target="_blank" style="color: #0284c7; font-weight: 800; text-decoration: underline; display: block; margin-top: 2px;">Join Virtual Meet &rarr;</a>
+                    // Contextual sections for Interview & Offer
+                    let contextualSection = '';
+
+                    // 1. Interview section (if scheduled/accepted/rejected/completed)
+                    const hasInterview = a.interviewDetails || a.status === 'Interview Scheduled' || a.status === 'Interview Accepted' || a.status === 'Interview Rejected' || a.status === 'Interview Completed' || a.status === 'Interview';
+                    if (hasInterview) {
+                        const intDetails = a.interviewDetails || {};
+                        let intBadgeStyle = 'background: rgba(2,132,199,0.12); color: #0284c7;';
+                        let intStatusLabel = 'Scheduled';
+                        if (a.status === 'Interview Accepted' || intDetails.status === 'Accepted') {
+                            intBadgeStyle = 'background: rgba(16,185,129,0.14); color: #059669;';
+                            intStatusLabel = 'Accepted';
+                        } else if (a.status === 'Interview Rejected' || intDetails.status === 'Rejected') {
+                            intBadgeStyle = 'background: rgba(239,68,68,0.12); color: #ef4444;';
+                            intStatusLabel = 'Declined';
+                        } else if (a.status === 'Interview Completed') {
+                            intBadgeStyle = 'background: rgba(99,102,241,0.12); color: #6366f1;';
+                            intStatusLabel = 'Completed';
+                        }
+
+                        contextualSection += `
+                            <div style="background: rgba(2,132,199,0.06); border: 1px solid rgba(2,132,199,0.22); border-radius: 8px; padding: 10px; font-size: 0.74rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                    <strong style="color: #0284c7; font-size: 0.78rem;"><i class="fa-regular fa-calendar-check"></i> ${intDetails.round || 'Technical Round'}</strong>
+                                    <span style="font-size: 0.68rem; font-weight: 800; padding: 1px 6px; border-radius: 4px; ${intBadgeStyle}">${intStatusLabel}</span>
+                                </div>
+                                <div style="color: var(--text-muted);"><i class="fa-regular fa-clock"></i> ${intDetails.date || ''} at ${intDetails.time || ''}</div>
+                                <div style="color: var(--text-muted); margin-top: 2px;"><i class="fa-solid fa-video"></i> Mode: ${intDetails.mode || 'Online Video'}</div>
+                                <div style="margin-top: 8px; display: flex; gap: 5px; flex-wrap: wrap;">
+                                    <button onclick="openSeekerInterviewLetter('${appIdStr}')" style="flex: 1; padding: 5px 8px; border-radius: 6px; background: #0284c7; color: #fff; border: none; font-size: 0.72rem; font-weight: 800; cursor: pointer;">
+                                        <i class="fa-regular fa-envelope-open"></i> Call Letter
+                                    </button>
+                                    ${a.status === 'Interview Scheduled' ? `
+                                        <button onclick="submitSeekerInterviewResponseDirect('${appIdStr}', 'Accepted')" style="padding: 5px 8px; border-radius: 6px; background: #10b981; color: #fff; border: none; font-size: 0.72rem; font-weight: 800; cursor: pointer;" title="Accept Interview">
+                                            <i class="fa-solid fa-check"></i>
+                                        </button>
+                                        <button onclick="submitSeekerInterviewResponseDirect('${appIdStr}', 'Rejected')" style="padding: 5px 8px; border-radius: 6px; background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.25); font-size: 0.72rem; font-weight: 800; cursor: pointer;" title="Decline Interview">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                    ` : ''}
+                                </div>
                             </div>
                         `;
-                    } else if (a.status === 'Offered') {
-                        extraDetails = `
-                            <div style="background: rgba(16,185,129,0.08); border-radius: 6px; padding: 6px 8px; font-size: 0.72rem; color: #059669; margin-top: 4px;">
-                                <div><strong>🎉 Offer CTC:</strong> ${a.offerDetails?.ctc || '₹8,50,000'}</div>
-                                <div style="font-weight: 700; margin-top: 2px;">Role: ${a.offerDetails?.role || a.jobTitle}</div>
+                    }
+
+                    // 2. Candidate Selected stage (before offer letter sent)
+                    if (a.status === 'Selected') {
+                        contextualSection += `
+                            <div style="background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.28); border-radius: 8px; padding: 10px; font-size: 0.74rem;">
+                                <div style="font-weight: 800; color: #047857; display: flex; align-items: center; gap: 6px;">
+                                    <i class="fa-solid fa-trophy" style="color: #059669;"></i> Candidate Selected!
+                                </div>
+                                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 3px;">
+                                    You have cleared the interview evaluation. The company is preparing your official offer letter.
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    // 3. Offer Letter section (Offer Sent / Accepted / Rejected)
+                    const hasOffer = a.offerDetails || a.status === 'Offer Sent' || a.status === 'Offer Accepted' || a.status === 'Offer Rejected' || a.status === 'Offered';
+                    if (hasOffer) {
+                        const offDetails = a.offerDetails || {};
+                        let offBadgeStyle = 'background: rgba(245,158,11,0.14); color: #d97706;';
+                        let offStatusLabel = 'Issued';
+                        if (a.status === 'Offer Accepted' || offDetails.status === 'Accepted' || a.status === 'Hired') {
+                            offBadgeStyle = 'background: rgba(16,185,129,0.18); color: #047857;';
+                            offStatusLabel = 'Accepted';
+                        } else if (a.status === 'Offer Rejected' || offDetails.status === 'Rejected') {
+                            offBadgeStyle = 'background: rgba(239,68,68,0.12); color: #ef4444;';
+                            offStatusLabel = 'Declined';
+                        }
+
+                        contextualSection += `
+                            <div style="background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.26); border-radius: 8px; padding: 10px; font-size: 0.74rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <strong style="color: #059669; font-size: 0.78rem;"><i class="fa-solid fa-award"></i> Official Job Offer</strong>
+                                    <span style="font-size: 0.68rem; font-weight: 800; padding: 1px 6px; border-radius: 4px; ${offBadgeStyle}">${offStatusLabel}</span>
+                                </div>
+                                <div style="color: #059669; font-weight: 800;"><i class="fa-solid fa-indian-rupee-sign"></i> CTC: ${offDetails.salaryCtc || offDetails.ctc || '₹8,50,000'}</div>
+                                <div style="color: var(--text-muted);"><i class="fa-regular fa-calendar-check"></i> Joining: ${offDetails.joiningDate || 'TBD'}</div>
+                                ${a.status === 'Offer Accepted' ? `
+                                    <div style="margin-top: 5px; background: rgba(16,185,129,0.14); border-radius: 5px; padding: 3px 6px; color: #065f46; font-weight: 800; font-size: 0.7rem;">
+                                        🎉 Confirmed Joining: ${a.confirmedJoiningDate || offDetails.joiningDate}
+                                    </div>
+                                ` : ''}
+                                <div style="margin-top: 8px; display: flex; gap: 5px; flex-wrap: wrap;">
+                                    <button onclick="openSeekerOfferLetter('${appIdStr}')" style="flex: 1; padding: 5px 8px; border-radius: 6px; background: linear-gradient(135deg, #059669, #10b981); color: #fff; border: none; font-size: 0.72rem; font-weight: 800; cursor: pointer;">
+                                        <i class="fa-regular fa-envelope-open"></i> View Offer Letter
+                                    </button>
+                                    ${a.status === 'Offer Sent' ? `
+                                        <button onclick="submitSeekerOfferResponseDirect('${appIdStr}', 'Accepted')" style="padding: 5px 8px; border-radius: 6px; background: #059669; color: #fff; border: none; font-size: 0.72rem; font-weight: 800; cursor: pointer;" title="Accept Offer">
+                                            <i class="fa-solid fa-check"></i>
+                                        </button>
+                                        <button onclick="submitSeekerOfferResponseDirect('${appIdStr}', 'Rejected')" style="padding: 5px 8px; border-radius: 6px; background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.25); font-size: 0.72rem; font-weight: 800; cursor: pointer;" title="Decline Offer">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                    ` : ''}
+                                </div>
                             </div>
                         `;
                     }
 
                     card.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <strong style="font-size: 0.86rem; color: var(--text-main); line-height: 1.3;">${a.jobTitle || 'Developer'}</strong>
+                            <div>
+                                <strong style="font-size: 0.88rem; color: var(--text-main); line-height: 1.3; display: block;">${a.jobTitle || 'Developer'}</strong>
+                                <span style="font-size: 0.7rem; font-family: monospace; color: #4f46e5; font-weight: 700; background: rgba(79,70,229,0.08); padding: 1px 5px; border-radius: 4px;">#${appIdDisplay}</span>
+                            </div>
                             <span style="font-size: 0.72rem; font-weight: 800; color: #10b981;"><i class="fa-solid fa-sparkles"></i> ${score}%</span>
                         </div>
                         <div style="font-size: 0.75rem; color: var(--text-muted);">${a.company || 'TechCorp'} &bull; <span style="color: var(--text-dim);">${dateStr}</span></div>
-                        ${extraDetails}
+                        ${contextualSection}
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; padding-top: 6px; border-top: 1px solid var(--border-card);">
-                            <small style="font-size: 0.68rem; color: var(--text-dim);">Stage: ${a.status || 'Applied'}</small>
-                            <button onclick="withdrawApplication('${a.id}')" style="background: none; border: none; font-size: 0.68rem; color: #ef4444; cursor: pointer; font-weight: 700;">Withdraw</button>
+                            <small style="font-size: 0.68rem; color: var(--text-dim);">Stage: <strong>${a.status || 'Applied'}</strong></small>
+                            <button onclick="withdrawApplication('${appIdStr}')" style="background: none; border: none; font-size: 0.68rem; color: #ef4444; cursor: pointer; font-weight: 700;">Withdraw</button>
                         </div>
                     `;
                     container.appendChild(card);
@@ -3537,7 +4266,7 @@
                 if (myApps.length === 0) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="5" style="text-align: center; color: var(--text-dim); padding: 40px;">
+                            <td colspan="6" style="text-align: center; color: var(--text-dim); padding: 40px;">
                                 You haven't submitted any job applications yet.
                             </td>
                         </tr>
@@ -3550,27 +4279,89 @@
                     const tr = document.createElement('tr');
                     tr.style.borderBottom = '1px solid var(--border-card)';
                     
+                    const appIdDisplay = String(a.id || a.application_id || 'APP-1001').substring(0, 10);
+                    const appIdStr = String(a.id || a.application_id);
+                    const dateStr = a.appliedAt ? new Date(a.appliedAt).toLocaleDateString() : 'Recent';
+
+                    // Status Badge
                     let badge = `<span style="background: rgba(59,130,246,0.12); color: #2563eb; padding: 3px 8px; border-radius: 4px; font-size: 0.74rem; font-weight: 700;">Applied</span>`;
                     if (a.status === 'Shortlisted' || a.status === 'Under Review') {
-                        badge = `<span style="background: rgba(245,158,11,0.12); color: #f59e0b; padding: 3px 8px; border-radius: 4px; font-size: 0.74rem; font-weight: 700;">Screening</span>`;
+                        badge = `<span style="background: rgba(245,158,11,0.12); color: #f59e0b; padding: 3px 8px; border-radius: 4px; font-size: 0.74rem; font-weight: 700;">Shortlisted</span>`;
                     } else if (a.status === 'Interview Scheduled') {
-                        badge = `<span style="background: rgba(14,165,233,0.12); color: #0ea5e9; padding: 3px 8px; border-radius: 4px; font-size: 0.74rem; font-weight: 700;"><i class="fa-regular fa-calendar"></i> Interview</span>`;
-                    } else if (a.status === 'Offered' || a.status === 'Hired') {
-                        badge = `<span style="background: rgba(16,185,129,0.12); color: #10b981; padding: 3px 8px; border-radius: 4px; font-size: 0.74rem; font-weight: 700;"><i class="fa-solid fa-trophy"></i> Offered</span>`;
+                        badge = `<span style="background: rgba(14,165,233,0.12); color: #0ea5e9; padding: 3px 8px; border-radius: 4px; font-size: 0.74rem; font-weight: 700;"><i class="fa-regular fa-calendar"></i> Interview Scheduled</span>`;
+                    } else if (a.status === 'Interview Accepted') {
+                        badge = `<span style="background: rgba(16,185,129,0.14); color: #059669; padding: 3px 8px; border-radius: 4px; font-size: 0.74rem; font-weight: 700;"><i class="fa-solid fa-check"></i> Interview Accepted</span>`;
+                    } else if (a.status === 'Selected') {
+                        badge = `<span style="background: rgba(16,185,129,0.18); color: #047857; padding: 3px 8px; border-radius: 4px; font-size: 0.74rem; font-weight: 800;"><i class="fa-solid fa-trophy"></i> Selected</span>`;
+                    } else if (a.status === 'Offer Sent' || a.status === 'Offered') {
+                        badge = `<span style="background: rgba(245,158,11,0.14); color: #d97706; padding: 3px 8px; border-radius: 4px; font-size: 0.74rem; font-weight: 700;"><i class="fa-regular fa-envelope-open"></i> Offer Sent</span>`;
+                    } else if (a.status === 'Offer Accepted' || a.status === 'Hired') {
+                        badge = `<span style="background: rgba(16,185,129,0.2); color: #065f46; padding: 3px 8px; border-radius: 4px; font-size: 0.74rem; font-weight: 800;"><i class="fa-solid fa-handshake"></i> Offer Accepted</span>`;
                     } else if (a.status === 'Rejected') {
                         badge = `<span style="background: rgba(239,68,68,0.12); color: #ef4444; padding: 3px 8px; border-radius: 4px; font-size: 0.74rem; font-weight: 700;">Rejected</span>`;
+                    }
+
+                    // Interview Column Details & Action
+                    let interviewCell = `<span style="color: var(--text-dim); font-size: 0.76rem;">None</span>`;
+                    const hasInt = a.interviewDetails || a.status?.startsWith('Interview');
+                    if (hasInt) {
+                        const intDetails = a.interviewDetails || {};
+                        interviewCell = `
+                            <div style="font-size: 0.78rem;">
+                                <div><strong>${intDetails.round || 'Technical Round'}</strong></div>
+                                <div style="color: var(--text-muted); font-size: 0.72rem;">${intDetails.date || ''} ${intDetails.time || ''}</div>
+                                <div style="margin-top: 4px; display: flex; gap: 4px;">
+                                    <button onclick="openSeekerInterviewLetter('${appIdStr}')" style="background: #0284c7; color: #fff; border: none; padding: 3px 7px; border-radius: 4px; font-size: 0.68rem; font-weight: 800; cursor: pointer;">
+                                        View Letter
+                                    </button>
+                                    ${a.status === 'Interview Scheduled' ? `
+                                        <button onclick="submitSeekerInterviewResponseDirect('${appIdStr}', 'Accepted')" style="background: #10b981; color: #fff; border: none; padding: 3px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 800; cursor: pointer;">Accept</button>
+                                        <button onclick="submitSeekerInterviewResponseDirect('${appIdStr}', 'Rejected')" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); padding: 3px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 800; cursor: pointer;">Decline</button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    // Offer Column Details & Action
+                    let offerCell = `<span style="color: var(--text-dim); font-size: 0.76rem;">None</span>`;
+                    const hasOff = a.offerDetails || a.status?.startsWith('Offer') || a.status === 'Selected';
+                    if (a.status === 'Selected') {
+                        offerCell = `<span style="color: #059669; font-weight: 800; font-size: 0.76rem;"><i class="fa-solid fa-trophy"></i> Selected (Offer Pending)</span>`;
+                    } else if (hasOff) {
+                        const offDetails = a.offerDetails || {};
+                        offerCell = `
+                            <div style="font-size: 0.78rem;">
+                                <div style="color: #059669; font-weight: 800;">${offDetails.salaryCtc || '₹8,50,000'}</div>
+                                <div style="color: var(--text-muted); font-size: 0.72rem;">Joining: ${offDetails.joiningDate || 'TBD'}</div>
+                                ${a.status === 'Offer Accepted' ? `<div style="color: #065f46; font-size: 0.7rem; font-weight: 800;">Confirmed: ${a.confirmedJoiningDate || offDetails.joiningDate}</div>` : ''}
+                                <div style="margin-top: 4px; display: flex; gap: 4px;">
+                                    <button onclick="openSeekerOfferLetter('${appIdStr}')" style="background: linear-gradient(135deg, #059669, #10b981); color: #fff; border: none; padding: 3px 7px; border-radius: 4px; font-size: 0.68rem; font-weight: 800; cursor: pointer;">
+                                        View Offer
+                                    </button>
+                                    ${a.status === 'Offer Sent' ? `
+                                        <button onclick="submitSeekerOfferResponseDirect('${appIdStr}', 'Accepted')" style="background: #059669; color: #fff; border: none; padding: 3px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 800; cursor: pointer;">Accept</button>
+                                        <button onclick="submitSeekerOfferResponseDirect('${appIdStr}', 'Rejected')" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); padding: 3px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 800; cursor: pointer;">Decline</button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
                     }
 
                     tr.innerHTML = `
                         <td style="padding: 12px 10px;">
                             <strong>${a.jobTitle || 'Role'}</strong>
-                            <div style="font-size: 0.74rem; color: var(--text-dim);">${a.company || 'Company'}</div>
+                            <div style="font-size: 0.72rem; font-family: monospace; color: #4f46e5; font-weight: 700;">#${appIdDisplay}</div>
                         </td>
-                        <td style="padding: 12px 10px; font-size: 0.84rem;">Remote / Hybrid</td>
-                        <td style="padding: 12px 10px; font-size: 0.8rem; color: var(--text-muted);">${new Date(a.appliedAt).toLocaleDateString()}</td>
+                        <td style="padding: 12px 10px; font-size: 0.84rem;">
+                            <strong>${a.company || 'Company'}</strong>
+                            <div style="font-size: 0.72rem; color: var(--text-dim);">${dateStr}</div>
+                        </td>
                         <td style="padding: 12px 10px;">${badge}</td>
+                        <td style="padding: 12px 10px;">${interviewCell}</td>
+                        <td style="padding: 12px 10px;">${offerCell}</td>
                         <td style="padding: 12px 10px; text-align: right;">
-                            <button onclick="withdrawApplication('${a.id}')" style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); color: #ef4444; padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">
+                            <button onclick="withdrawApplication('${appIdStr}')" style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); color: #ef4444; padding: 4px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">
                                 Withdraw
                             </button>
                         </td>
@@ -5493,6 +6284,16 @@ class LRUCache:
                     document.documentElement.setAttribute('data-theme', 'dark');
                     themeIcon.className = 'fa-solid fa-moon';
                 }
+            });
+
+            // Live synchronization for interview and offer letter events
+            window.addEventListener('smarthire_interview_updated', () => {
+                renderApplicationHistory();
+                loadSeekerDashboard();
+            });
+            window.addEventListener('smarthire_offer_updated', () => {
+                renderApplicationHistory();
+                loadSeekerDashboard();
             });
 
             // Logout

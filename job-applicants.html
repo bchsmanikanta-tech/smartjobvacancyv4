@@ -609,26 +609,70 @@
                 }
                 apps.forEach(a => {
                     const tr = document.createElement('tr');
+                    const st = a.status || 'Applied';
+                    const appIdDisplay = String(a.id || a.application_id || 'APP-1001').substring(0, 10);
+                    const appIdStr = String(a.id || a.application_id);
 
-                    // Status tag
-                    let statusBadge = `<span class="status-pill status-pending"><i class="fa-solid fa-circle" style="font-size: 0.5rem;"></i> Pending</span>`;
-                    if (a.status === 'Shortlisted' || a.status === 'Accepted' || a.status === 'Hired') {
-                        statusBadge = `<span class="status-pill status-selected"><i class="fa-solid fa-circle" style="font-size: 0.5rem;"></i> Selected</span>`;
-                    } else if (a.status === 'Rejected') {
-                        statusBadge = `<span class="status-pill status-rejected"><i class="fa-solid fa-circle" style="font-size: 0.5rem;"></i> Rejected</span>`;
+                    // Rich Status tag
+                    let statusBadge = `<span class="status-pill status-pending"><i class="fa-solid fa-clock" style="font-size: 0.5rem;"></i> Applied</span>`;
+                    if (st === 'Shortlisted') {
+                        statusBadge = `<span class="status-pill" style="background: rgba(168,85,247,0.12); color: #a855f7; border: 1px solid rgba(168,85,247,0.25);"><i class="fa-solid fa-star" style="font-size: 0.5rem;"></i> Shortlisted</span>`;
+                    } else if (st === 'Interview Scheduled' || st === 'Interview') {
+                        statusBadge = `<span class="status-pill" style="background: rgba(14,165,233,0.12); color: #0284c7; border: 1px solid rgba(14,165,233,0.25);"><i class="fa-regular fa-calendar" style="font-size: 0.5rem;"></i> Interview</span>`;
+                    } else if (st === 'Interview Accepted') {
+                        statusBadge = `<span class="status-pill" style="background: rgba(16,185,129,0.14); color: #059669; border: 1px solid rgba(16,185,129,0.25);"><i class="fa-solid fa-calendar-check" style="font-size: 0.5rem;"></i> Int. Accepted</span>`;
+                    } else if (st === 'Interview Completed') {
+                        statusBadge = `<span class="status-pill" style="background: rgba(99,102,241,0.12); color: #6366f1; border: 1px solid rgba(99,102,241,0.25);"><i class="fa-solid fa-clipboard-check" style="font-size: 0.5rem;"></i> Int. Done</span>`;
+                    } else if (st === 'Selected') {
+                        statusBadge = `<span class="status-pill" style="background: rgba(16,185,129,0.18); color: #047857; border: 1px solid rgba(16,185,129,0.3); font-weight: 800;"><i class="fa-solid fa-trophy" style="font-size: 0.5rem;"></i> Selected</span>`;
+                    } else if (st === 'Offer Sent' || st === 'Offered') {
+                        statusBadge = `<span class="status-pill" style="background: rgba(245,158,11,0.14); color: #d97706; border: 1px solid rgba(245,158,11,0.3);"><i class="fa-solid fa-envelope-open-text" style="font-size: 0.5rem;"></i> Offer Sent</span>`;
+                    } else if (st === 'Offer Accepted' || st === 'Hired') {
+                        statusBadge = `<span class="status-pill" style="background: rgba(16,185,129,0.22); color: #065f46; border: 1px solid rgba(16,185,129,0.35); font-weight: 800;"><i class="fa-solid fa-handshake" style="font-size: 0.5rem;"></i> Offer Accepted</span>`;
+                    } else if (st === 'Rejected' || st === 'Interview Rejected' || st === 'Offer Rejected') {
+                        statusBadge = `<span class="status-pill status-rejected"><i class="fa-solid fa-circle-xmark" style="font-size: 0.5rem;"></i> Rejected</span>`;
                     }
 
-                    // Action buttons
-                    let acceptBtn = `<button class="btn-act-accept" onclick="updateAppStatus('${a.id}', 'Shortlisted')"><i class="fa-solid fa-circle-check"></i> Accept</button>`;
-                    if (a.status === 'Shortlisted' || a.status === 'Accepted') {
-                        acceptBtn = `<button class="btn-act-accepted"><i class="fa-solid fa-circle-check"></i> Accepted</button>`;
+                    // Contextual Action buttons
+                    let stageActionBtn = '';
+                    const dashUrl = `company-dashboard.html?session_id=${encodeURIComponent(currentCompanyId)}&session_email=${encodeURIComponent(companyEmail)}&session_name=${encodeURIComponent(currentCompany)}&session_role=company`;
+
+                    if (!a.status || a.status === 'Applied' || a.status === 'Under Review') {
+                        stageActionBtn = `
+                            <button class="btn-act-accept" onclick="updateAppStatus('${appIdStr}', 'Shortlisted')"><i class="fa-solid fa-star"></i> Shortlist</button>
+                            <button class="btn-act-reject" onclick="updateAppStatus('${appIdStr}', 'Rejected')"><i class="fa-solid fa-circle-xmark"></i> Reject</button>
+                        `;
+                    } else if (a.status === 'Shortlisted') {
+                        stageActionBtn = `
+                            <button class="btn-act-accept" style="background: #0284c7; border-color: #0284c7;" onclick="window.location.href='${dashUrl}&action=interview&appId=${appIdStr}'"><i class="fa-regular fa-calendar-plus"></i> Schedule Interview</button>
+                            <button class="btn-act-reject" onclick="updateAppStatus('${appIdStr}', 'Rejected')"><i class="fa-solid fa-circle-xmark"></i> Reject</button>
+                        `;
+                    } else if (a.status === 'Interview Scheduled' || a.status === 'Interview Accepted' || a.status === 'Interview') {
+                        stageActionBtn = `
+                            <button class="btn-act-accept" style="background: #10b981; border-color: #10b981;" onclick="window.location.href='${dashUrl}&action=result&appId=${appIdStr}'"><i class="fa-solid fa-clipboard-check"></i> Interview Result</button>
+                        `;
+                    } else if (a.status === 'Interview Completed') {
+                        stageActionBtn = `
+                            <button class="btn-act-accept" style="background: #10b981; border-color: #10b981;" onclick="window.location.href='${dashUrl}&action=result&appId=${appIdStr}'"><i class="fa-solid fa-clipboard-check"></i> Record Result</button>
+                        `;
+                    } else if (a.status === 'Selected') {
+                        stageActionBtn = `
+                            <button class="btn-act-accept" style="background: linear-gradient(135deg, #059669, #10b981); border: none; font-weight: 800;" onclick="window.location.href='${dashUrl}&action=offer&appId=${appIdStr}'"><i class="fa-regular fa-paper-plane"></i> Send Offer</button>
+                        `;
+                    } else if (a.status === 'Offer Sent' || a.status === 'Offer Accepted' || a.status === 'Offer Rejected' || a.status === 'Offered') {
+                        stageActionBtn = `
+                            <button class="btn-act-accept" style="background: rgba(245,158,11,0.12); color: #d97706; border-color: rgba(245,158,11,0.3);" onclick="window.location.href='${dashUrl}&action=offer&appId=${appIdStr}'"><i class="fa-regular fa-envelope-open"></i> View Offer</button>
+                        `;
                     }
 
                     const letterText = (a.coverLetter || 'No cover letter provided.').replace(/'/g, "\\'");
 
                     tr.innerHTML = `
                         <td>
-                            <div class="candidate-name-cell">${a.applicantName || a.fullName || 'Candidate'}</div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <div class="candidate-name-cell">${a.applicantName || a.fullName || 'Candidate'}</div>
+                                <span style="font-family: monospace; font-weight: 700; font-size: 0.7rem; color: #4f46e5; background: rgba(79,70,229,0.08); padding: 1px 5px; border-radius: 4px;">#${appIdDisplay}</span>
+                            </div>
                             <div class="ai-match-badge"><i class="fa-solid fa-wand-magic-sparkles"></i> ${a.matchScore || a.aiMatch || 85}% AI Match</div>
                         </td>
                         <td style="color: var(--text-muted);">${a.applicantEmail || a.email}</td>
@@ -646,8 +690,7 @@
                         <td>
                             <div class="action-cell-stack">
                                 <div class="action-row-btns">
-                                     ${acceptBtn}
-                                    <button class="btn-act-reject" onclick="updateAppStatus('${a.id}', 'Rejected')"><i class="fa-solid fa-circle-xmark"></i> Reject</button>
+                                    ${stageActionBtn}
                                 </div>
                                 <button class="btn-act-chat" onclick="openCandidateChat('${(a.applicantName || a.fullName || 'Candidate').replace(/'/g, "\\'")}', '${(a.applicantEmail || a.email || 'candidate@gmail.com').replace(/'/g, "\\'")}')"><i class="fa-regular fa-comment-dots"></i> Chat</button>
                             </div>

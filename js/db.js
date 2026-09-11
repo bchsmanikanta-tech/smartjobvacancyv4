@@ -9,7 +9,9 @@
         JOBS: 'smarthire_jobs',
         PROFILES: 'smarthire_seeker_profiles',
         SAVED_JOBS: 'smarthire_saved_jobs',
-        NOTIFICATIONS: 'smarthire_notifications'
+        NOTIFICATIONS: 'smarthire_notifications',
+        INTERVIEWS: 'smarthire_interviews',
+        OFFERS: 'smarthire_offers'
     };
 
     // Helper: Convert string IDs into valid RFC-4122 UUID format required by PostgreSQL
@@ -81,12 +83,20 @@
             if (!localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS)) {
                 localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify([]));
             }
+            if (!localStorage.getItem(STORAGE_KEYS.INTERVIEWS)) {
+                localStorage.setItem(STORAGE_KEYS.INTERVIEWS, JSON.stringify([]));
+            }
+            if (!localStorage.getItem(STORAGE_KEYS.OFFERS)) {
+                localStorage.setItem(STORAGE_KEYS.OFFERS, JSON.stringify([]));
+            }
         }
 
         clearAllData() {
             localStorage.setItem(STORAGE_KEYS.APPLICATIONS, JSON.stringify([]));
             localStorage.setItem(STORAGE_KEYS.JOBS, JSON.stringify([]));
             localStorage.setItem(STORAGE_KEYS.SAVED_JOBS, JSON.stringify([]));
+            localStorage.setItem(STORAGE_KEYS.INTERVIEWS, JSON.stringify([]));
+            localStorage.setItem(STORAGE_KEYS.OFFERS, JSON.stringify([]));
             localStorage.setItem('smartjob_saved_jobs', JSON.stringify([]));
             localStorage.setItem('smartjob_users_db', JSON.stringify([]));
             localStorage.setItem('smarthire_chat_db', JSON.stringify({}));
@@ -882,13 +892,641 @@
         }
 
         // ==========================================
-        // 5. UNIFIED ALL-TABLE CLOUD SYNC
+        // 5. INTERVIEWS (CONNECTED TO SAME APPLICATION)
+        // ==========================================
+        getInterviews() {
+            try {
+                return JSON.parse(localStorage.getItem(STORAGE_KEYS.INTERVIEWS)) || [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        getInterviewByApplicationId(appId) {
+            if (!appId) return null;
+            const target = String(appId).trim();
+            const all = this.getInterviews();
+            return all.find(i => String(i.applicationId || i.application_id) === target || String(i.id || i.interview_id) === target) || null;
+        }
+
+        getInterviewsForCandidate(candidateEmailOrId) {
+            if (!candidateEmailOrId) return [];
+            const target = String(candidateEmailOrId).trim().toLowerCase();
+            const all = this.getInterviews();
+            return all.filter(i => {
+                const cMail = String(i.candidateEmail || i.candidate_email || '').trim().toLowerCase();
+                const cId = String(i.candidateId || i.candidate_id || '').trim().toLowerCase();
+                return cMail === target || cId === target;
+            });
+        }
+
+        getInterviewsForCompany(companyIdOrName, companyEmail = '') {
+            const all = this.getInterviews();
+            const cId = String(companyIdOrName || '').trim().toLowerCase();
+            const cEmail = String(companyEmail || '').trim().toLowerCase();
+            if (!cId && !cEmail) return all;
+            return all.filter(i => {
+                const iCompId = String(i.companyId || i.company_id || '').trim().toLowerCase();
+                const iCompName = String(i.companyName || i.company_name || '').trim().toLowerCase();
+                return (cId && (iCompId === cId || iCompName === cId)) || (cEmail && iCompId === cEmail);
+            });
+        }
+
+        async scheduleInterview(data) {
+            const appId = toUUID(data.applicationId || data.application_id);
+            const rawId = data.id || data.interview_id || generateUUID();
+            const interviewId = toUUID(rawId);
+
+            // Fetch matched application to preserve single-application record
+            const apps = this.getApplications();
+            const appIdx = apps.findIndex(a => String(a.id) === String(appId) || String(a.application_id) === String(appId));
+            const targetApp = appIdx >= 0 ? apps[appIdx] : null;
+
+            const candidateEmail = (data.candidateEmail || data.candidate_email || targetApp?.applicantEmail || targetApp?.email || '').trim().toLowerCase();
+            const candidateName = data.candidateName || data.candidate_name || targetApp?.applicantName || targetApp?.fullName || 'Candidate';
+            const companyName = data.companyName || data.company_name || targetApp?.company || 'Company';
+            const companyId = data.companyId || data.company_id || targetApp?.companyId || targetApp?.company_id || '';
+            const jobId = data.jobId || data.job_id || targetApp?.jobId || targetApp?.job_id || '';
+            const jobTitle = data.jobTitle || data.job_title || targetApp?.jobTitle || 'Job Opening';
+
+            const newInterview = {
+                id: interviewId,
+                interview_id: interviewId,
+                applicationId: appId,
+                application_id: appId,
+                jobId: jobId ? toUUID(jobId) : null,
+                job_id: jobId ? toUUID(jobId) : null,
+                companyId: companyId ? toUUID(companyId) : null,
+                company_id: companyId ? toUUID(companyId) : null,
+                candidateId: targetApp?.candidateId ? toUUID(targetApp.candidateId) : null,
+                candidate_id: targetApp?.candidateId ? toUUID(targetApp.candidateId) : null,
+                candidateEmail: candidateEmail,
+                candidate_email: candidateEmail,
+                candidateName: candidateName,
+                candidate_name: candidateName,
+                companyName: companyName,
+                company_name: companyName,
+                jobTitle: jobTitle,
+                job_title: jobTitle,
+                interviewRound: data.interviewRound || data.round || 'Technical Round 1',
+                interviewDate: data.interviewDate || data.date,
+                interview_date: data.interviewDate || data.date,
+                interviewTime: data.interviewTime || data.time,
+                interview_time: data.interviewTime || data.time,
+                interviewMode: data.interviewMode || data.mode || 'Online',
+                interview_mode: data.interviewMode || data.mode || 'Online',
+                meetingLink: data.meetingLink || data.meeting_link || '',
+                meeting_link: data.meetingLink || data.meeting_link || '',
+                location: data.location || '',
+                instructions: data.instructions || data.notes || '',
+                status: 'Scheduled', // 'Scheduled', 'Accepted', 'Rejected', 'Completed', 'Cancelled'
+                result: 'Pending',   // 'Pending', 'Selected', 'Rejected', 'On Hold'
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            // 1. Update/Add in Interviews Store
+            const interviews = this.getInterviews();
+            const existingIntIdx = interviews.findIndex(i => 
+                String(i.id) === String(newInterview.id) || 
+                String(i.applicationId || i.application_id) === String(appId)
+            );
+            if (existingIntIdx >= 0) {
+                interviews[existingIntIdx] = { ...interviews[existingIntIdx], ...newInterview };
+            } else {
+                interviews.unshift(newInterview);
+            }
+            localStorage.setItem(STORAGE_KEYS.INTERVIEWS, JSON.stringify(interviews));
+
+            // 2. Update existing application status (ONE application invariant - NO duplicates!)
+            if (appIdx >= 0) {
+                apps[appIdx].status = 'Interview Scheduled';
+                apps[appIdx].interviewId = interviewId;
+                apps[appIdx].interviewDetails = newInterview;
+                localStorage.setItem(STORAGE_KEYS.APPLICATIONS, JSON.stringify(apps));
+            }
+
+            // 3. Sync to Supabase
+            const client = this.getSupabase();
+            if (client) {
+                try {
+                    const sbPayload = {
+                        interview_id: interviewId,
+                        application_id: appId,
+                        job_id: newInterview.jobId,
+                        company_id: newInterview.companyId,
+                        candidate_id: newInterview.candidateId,
+                        candidate_email: candidateEmail,
+                        candidate_name: candidateName,
+                        company_name: companyName,
+                        job_title: jobTitle,
+                        interview_round: newInterview.interviewRound,
+                        interview_date: newInterview.interviewDate,
+                        interview_time: newInterview.interviewTime,
+                        interview_mode: newInterview.interviewMode,
+                        meeting_link: newInterview.meetingLink,
+                        location: newInterview.location,
+                        instructions: newInterview.instructions,
+                        status: newInterview.status,
+                        result: newInterview.result,
+                        updated_at: new Date().toISOString()
+                    };
+                    await client.from('interviews').upsert([sbPayload]);
+                    await client.from('applications').update({ status: 'Interview Scheduled' }).eq('application_id', appId);
+                } catch (e) {
+                    console.warn("Supabase scheduleInterview notice:", e);
+                }
+            }
+
+            // 4. Send Interview Invitation Notification to Candidate
+            this.addNotification({
+                userId: targetApp?.candidateId || candidateEmail,
+                userEmail: candidateEmail,
+                title: '📅 Interview Scheduled',
+                message: `${companyName} has invited you for an interview for "${jobTitle}" on ${newInterview.interviewDate} at ${newInterview.interviewTime} (${newInterview.interviewMode}). Please review and confirm your attendance.`,
+                type: 'info',
+                link: 'seeker-dashboard.html?tab=tab-history'
+            });
+
+            window.dispatchEvent(new CustomEvent('smarthire_interview_updated', { detail: newInterview }));
+            return newInterview;
+        }
+
+        async respondToInterview(interviewId, response, notes = '') {
+            const intId = toUUID(interviewId);
+            const interviews = this.getInterviews();
+            const idx = interviews.findIndex(i => String(i.id) === String(interviewId) || String(i.interview_id) === String(interviewId) || String(i.id) === String(intId));
+            if (idx === -1) return null;
+
+            const targetInt = interviews[idx];
+            targetInt.status = response; // 'Accepted' or 'Rejected'
+            targetInt.candidate_response_at = new Date().toISOString();
+            targetInt.candidateNotes = notes;
+            targetInt.updatedAt = new Date().toISOString();
+            interviews[idx] = targetInt;
+            localStorage.setItem(STORAGE_KEYS.INTERVIEWS, JSON.stringify(interviews));
+
+            // Update linked application
+            const appId = targetInt.applicationId || targetInt.application_id;
+            const newAppStatus = response === 'Accepted' ? 'Interview Accepted' : 'Interview Rejected';
+            const apps = this.getApplications();
+            const appIdx = apps.findIndex(a => String(a.id) === String(appId) || String(a.application_id) === String(appId));
+            if (appIdx >= 0) {
+                apps[appIdx].status = newAppStatus;
+                if (!apps[appIdx].interviewDetails) apps[appIdx].interviewDetails = targetInt;
+                else apps[appIdx].interviewDetails.status = response;
+                localStorage.setItem(STORAGE_KEYS.APPLICATIONS, JSON.stringify(apps));
+            }
+
+            // Supabase sync
+            const client = this.getSupabase();
+            if (client) {
+                try {
+                    await client.from('interviews').update({ 
+                        status: response, 
+                        candidate_response_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    }).eq('interview_id', toUUID(interviewId));
+                    if (appId) {
+                        await client.from('applications').update({ status: newAppStatus }).eq('application_id', toUUID(appId));
+                    }
+                } catch (e) {
+                    console.warn("Supabase respondToInterview notice:", e);
+                }
+            }
+
+            // Send notification to Company
+            this.addNotification({
+                userId: targetInt.companyId || targetInt.companyName,
+                userEmail: targetInt.companyName,
+                title: `Candidate ${response} Interview`,
+                message: `${targetInt.candidateName} has ${response.toLowerCase()} the interview invitation for "${targetInt.jobTitle}" scheduled for ${targetInt.interviewDate}.`,
+                type: response === 'Accepted' ? 'success' : 'warning',
+                link: 'company-dashboard.html'
+            });
+
+            window.dispatchEvent(new CustomEvent('smarthire_interview_updated', { detail: targetInt }));
+            return targetInt;
+        }
+
+        async updateInterviewResult(interviewId, result, feedback = '') {
+            const interviews = this.getInterviews();
+            const idx = interviews.findIndex(i => String(i.id) === String(interviewId) || String(i.interview_id) === String(interviewId));
+            if (idx === -1) return null;
+
+            const targetInt = interviews[idx];
+            targetInt.result = result; // 'Selected', 'Rejected', 'On Hold'
+            targetInt.status = 'Completed';
+            targetInt.companyFeedback = feedback;
+            targetInt.updatedAt = new Date().toISOString();
+            interviews[idx] = targetInt;
+            localStorage.setItem(STORAGE_KEYS.INTERVIEWS, JSON.stringify(interviews));
+
+            // Update linked application
+            const appId = targetInt.applicationId || targetInt.application_id;
+            let newAppStatus = 'Interview Completed';
+            if (result === 'Selected') newAppStatus = 'Selected';
+            else if (result === 'Rejected') newAppStatus = 'Rejected';
+            else if (result === 'On Hold') newAppStatus = 'On Hold';
+
+            const apps = this.getApplications();
+            const appIdx = apps.findIndex(a => String(a.id) === String(appId) || String(a.application_id) === String(appId));
+            if (appIdx >= 0) {
+                apps[appIdx].status = newAppStatus;
+                if (!apps[appIdx].interviewDetails) apps[appIdx].interviewDetails = targetInt;
+                else {
+                    apps[appIdx].interviewDetails.result = result;
+                    apps[appIdx].interviewDetails.status = 'Completed';
+                }
+                localStorage.setItem(STORAGE_KEYS.APPLICATIONS, JSON.stringify(apps));
+            }
+
+            // Supabase sync
+            const client = this.getSupabase();
+            if (client) {
+                try {
+                    await client.from('interviews').update({ 
+                        result: result, 
+                        status: 'Completed',
+                        updated_at: new Date().toISOString()
+                    }).eq('interview_id', toUUID(interviewId));
+                    if (appId) {
+                        await client.from('applications').update({ status: newAppStatus }).eq('application_id', toUUID(appId));
+                    }
+                } catch (e) {
+                    console.warn("Supabase updateInterviewResult notice:", e);
+                }
+            }
+
+            // Notification to candidate
+            this.addNotification({
+                userId: targetInt.candidateId || targetInt.candidateEmail,
+                userEmail: targetInt.candidateEmail,
+                title: result === 'Selected' ? '🎉 Congratulations! You are Selected' : 'Interview Result Update',
+                message: result === 'Selected' 
+                    ? `Great news! ${targetInt.companyName} has evaluated your interview and marked you as Selected for "${targetInt.jobTitle}". Your official offer letter will be sent soon.`
+                    : `Your interview round for "${targetInt.jobTitle}" at ${targetInt.companyName} is marked as "${result}".`,
+                type: result === 'Selected' ? 'success' : (result === 'Rejected' ? 'warning' : 'info'),
+                link: 'seeker-dashboard.html?tab=tab-history'
+            });
+
+            window.dispatchEvent(new CustomEvent('smarthire_interview_updated', { detail: targetInt }));
+            return targetInt;
+        }
+
+        async fetchInterviewsFromSupabase() {
+            const client = this.getSupabase();
+            if (!client) return this.getInterviews();
+            try {
+                const { data, error } = await client.from('interviews').select('*').order('created_at', { ascending: false });
+                if (error || !data) return this.getInterviews();
+                const cloudInts = data.map(i => ({
+                    id: i.interview_id,
+                    interview_id: i.interview_id,
+                    applicationId: i.application_id,
+                    application_id: i.application_id,
+                    jobId: i.job_id,
+                    job_id: i.job_id,
+                    companyId: i.company_id,
+                    company_id: i.company_id,
+                    candidateId: i.candidate_id,
+                    candidate_id: i.candidate_id,
+                    candidateEmail: i.candidate_email,
+                    candidate_email: i.candidate_email,
+                    candidateName: i.candidate_name,
+                    candidate_name: i.candidate_name,
+                    companyName: i.company_name,
+                    company_name: i.company_name,
+                    jobTitle: i.job_title,
+                    job_title: i.job_title,
+                    interviewRound: i.interview_round,
+                    interviewDate: i.interview_date,
+                    interview_date: i.interview_date,
+                    interviewTime: i.interview_time,
+                    interview_time: i.interview_time,
+                    interviewMode: i.interview_mode,
+                    interview_mode: i.interview_mode,
+                    meetingLink: i.meeting_link,
+                    meeting_link: i.meeting_link,
+                    location: i.location,
+                    instructions: i.instructions,
+                    status: i.status || 'Scheduled',
+                    result: i.result || 'Pending',
+                    candidate_response_at: i.candidate_response_at,
+                    createdAt: i.created_at,
+                    updatedAt: i.updated_at
+                }));
+
+                const localInts = this.getInterviews();
+                const mergedMap = new Map();
+                cloudInts.forEach(i => mergedMap.set(String(i.id), i));
+                localInts.forEach(i => {
+                    const key = String(i.id || i.interview_id);
+                    if (!mergedMap.has(key)) mergedMap.set(key, i);
+                });
+                const mergedList = Array.from(mergedMap.values());
+                localStorage.setItem(STORAGE_KEYS.INTERVIEWS, JSON.stringify(mergedList));
+                return mergedList;
+            } catch (e) {
+                return this.getInterviews();
+            }
+        }
+
+        // ==========================================
+        // 6. OFFER LETTERS (CONNECTED TO SAME APPLICATION)
+        // ==========================================
+        getOfferLetters() {
+            try {
+                return JSON.parse(localStorage.getItem(STORAGE_KEYS.OFFERS)) || [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        getOfferByApplicationId(appId) {
+            if (!appId) return null;
+            const target = String(appId).trim();
+            const all = this.getOfferLetters();
+            return all.find(o => String(o.applicationId || o.application_id) === target || String(o.id || o.offer_id) === target) || null;
+        }
+
+        getOffersForCandidate(candidateEmailOrId) {
+            if (!candidateEmailOrId) return [];
+            const target = String(candidateEmailOrId).trim().toLowerCase();
+            const all = this.getOfferLetters();
+            return all.filter(o => {
+                const cMail = String(o.candidateEmail || o.candidate_email || '').trim().toLowerCase();
+                const cId = String(o.candidateId || o.candidate_id || '').trim().toLowerCase();
+                return cMail === target || cId === target;
+            });
+        }
+
+        getOffersForCompany(companyIdOrName, companyEmail = '') {
+            const all = this.getOfferLetters();
+            const cId = String(companyIdOrName || '').trim().toLowerCase();
+            const cEmail = String(companyEmail || '').trim().toLowerCase();
+            if (!cId && !cEmail) return all;
+            return all.filter(o => {
+                const oCompId = String(o.companyId || o.company_id || '').trim().toLowerCase();
+                const oCompName = String(o.companyName || o.company_name || '').trim().toLowerCase();
+                return (cId && (oCompId === cId || oCompName === cId)) || (cEmail && oCompId === cEmail);
+            });
+        }
+
+        async sendOfferLetter(data) {
+            const appId = toUUID(data.applicationId || data.application_id);
+            const rawId = data.id || data.offer_id || generateUUID();
+            const offerId = toUUID(rawId);
+
+            // Fetch matched application to preserve single-application record
+            const apps = this.getApplications();
+            const appIdx = apps.findIndex(a => String(a.id) === String(appId) || String(a.application_id) === String(appId));
+            const targetApp = appIdx >= 0 ? apps[appIdx] : null;
+
+            const candidateEmail = (data.candidateEmail || data.candidate_email || targetApp?.applicantEmail || targetApp?.email || '').trim().toLowerCase();
+            const candidateName = data.candidateName || data.candidate_name || targetApp?.applicantName || targetApp?.fullName || 'Candidate';
+            const companyName = data.companyName || data.company_name || targetApp?.company || 'Company';
+            const companyId = data.companyId || data.company_id || targetApp?.companyId || targetApp?.company_id || '';
+            const jobId = data.jobId || data.job_id || targetApp?.jobId || targetApp?.job_id || '';
+            const position = data.position || data.role || targetApp?.jobTitle || 'Software Engineer';
+            const salaryCtc = data.salaryCtc || data.salary || data.ctc || '₹8,50,000 Per Annum';
+            const joiningDate = data.joiningDate || data.joining_date;
+            const employmentType = data.employmentType || data.employment_type || 'Full-time';
+            const workLocation = data.workLocation || data.work_location || data.location || 'Hybrid';
+            const expiryDate = data.expiryDate || data.expiry_date || '';
+            const additionalTerms = data.additionalTerms || data.additional_terms || data.terms || '';
+
+            const newOffer = {
+                id: offerId,
+                offer_id: offerId,
+                applicationId: appId,
+                application_id: appId,
+                jobId: jobId ? toUUID(jobId) : null,
+                job_id: jobId ? toUUID(jobId) : null,
+                companyId: companyId ? toUUID(companyId) : null,
+                company_id: companyId ? toUUID(companyId) : null,
+                candidateId: targetApp?.candidateId ? toUUID(targetApp.candidateId) : null,
+                candidate_id: targetApp?.candidateId ? toUUID(targetApp.candidateId) : null,
+                candidateEmail: candidateEmail,
+                candidate_email: candidateEmail,
+                candidateName: candidateName,
+                candidate_name: candidateName,
+                companyName: companyName,
+                company_name: companyName,
+                position: position,
+                salaryCtc: salaryCtc,
+                salary_ctc: salaryCtc,
+                joiningDate: joiningDate,
+                joining_date: joiningDate,
+                employmentType: employmentType,
+                employment_type: employmentType,
+                workLocation: workLocation,
+                work_location: workLocation,
+                expiryDate: expiryDate,
+                expiry_date: expiryDate,
+                additionalTerms: additionalTerms,
+                additional_terms: additionalTerms,
+                status: 'Pending', // 'Pending', 'Accepted', 'Rejected', 'Expired'
+                sentAt: new Date().toISOString(),
+                sent_at: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            // 1. Update/Add in Offers Store
+            const offers = this.getOfferLetters();
+            const existingOffIdx = offers.findIndex(o => 
+                String(o.id) === String(newOffer.id) || 
+                String(o.applicationId || o.application_id) === String(appId)
+            );
+            if (existingOffIdx >= 0) {
+                offers[existingOffIdx] = { ...offers[existingOffIdx], ...newOffer };
+            } else {
+                offers.unshift(newOffer);
+            }
+            localStorage.setItem(STORAGE_KEYS.OFFERS, JSON.stringify(offers));
+
+            // 2. Update existing application status (ONE application invariant - NO duplicates!)
+            if (appIdx >= 0) {
+                apps[appIdx].status = 'Offer Sent';
+                apps[appIdx].offerId = offerId;
+                apps[appIdx].offerDetails = newOffer;
+                localStorage.setItem(STORAGE_KEYS.APPLICATIONS, JSON.stringify(apps));
+            }
+
+            // 3. Supabase sync
+            const client = this.getSupabase();
+            if (client) {
+                try {
+                    const sbPayload = {
+                        offer_id: offerId,
+                        application_id: appId,
+                        job_id: newOffer.jobId,
+                        company_id: newOffer.companyId,
+                        candidate_id: newOffer.candidateId,
+                        candidate_email: candidateEmail,
+                        candidate_name: candidateName,
+                        company_name: companyName,
+                        position: position,
+                        salary_ctc: salaryCtc,
+                        joining_date: joiningDate,
+                        employment_type: employmentType,
+                        work_location: workLocation,
+                        expiry_date: expiryDate || null,
+                        additional_terms: additionalTerms,
+                        status: 'Pending',
+                        sent_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    };
+                    await client.from('offer_letters').upsert([sbPayload]);
+                    await client.from('applications').update({ status: 'Offer Sent' }).eq('application_id', appId);
+                } catch (e) {
+                    console.warn("Supabase sendOfferLetter notice:", e);
+                }
+            }
+
+            // 4. Candidate Notification
+            this.addNotification({
+                userId: targetApp?.candidateId || candidateEmail,
+                userEmail: candidateEmail,
+                title: '💼 Official Offer Letter Received',
+                message: `${companyName} has issued your official Job Offer Letter for "${position}" (Salary: ${salaryCtc}). Please review the terms and respond.`,
+                type: 'success',
+                link: 'seeker-dashboard.html?tab=tab-history'
+            });
+
+            window.dispatchEvent(new CustomEvent('smarthire_offer_updated', { detail: newOffer }));
+            return newOffer;
+        }
+
+        async respondToOffer(offerId, response, comments = '') {
+            const offId = toUUID(offerId);
+            const offers = this.getOfferLetters();
+            const idx = offers.findIndex(o => String(o.id) === String(offerId) || String(o.offer_id) === String(offerId) || String(o.id) === String(offId));
+            if (idx === -1) return null;
+
+            const targetOffer = offers[idx];
+            targetOffer.status = response; // 'Accepted' or 'Rejected'
+            targetOffer.responded_at = new Date().toISOString();
+            targetOffer.candidateComments = comments;
+            targetOffer.updatedAt = new Date().toISOString();
+            offers[idx] = targetOffer;
+            localStorage.setItem(STORAGE_KEYS.OFFERS, JSON.stringify(offers));
+
+            // Update linked application
+            const appId = targetOffer.applicationId || targetOffer.application_id;
+            const newAppStatus = response === 'Accepted' ? 'Offer Accepted' : 'Offer Rejected';
+            const apps = this.getApplications();
+            const appIdx = apps.findIndex(a => String(a.id) === String(appId) || String(a.application_id) === String(appId));
+            if (appIdx >= 0) {
+                apps[appIdx].status = newAppStatus;
+                if (response === 'Accepted') {
+                    apps[appIdx].confirmedJoiningDate = targetOffer.joiningDate || targetOffer.joining_date;
+                }
+                if (!apps[appIdx].offerDetails) apps[appIdx].offerDetails = targetOffer;
+                else apps[appIdx].offerDetails.status = response;
+                localStorage.setItem(STORAGE_KEYS.APPLICATIONS, JSON.stringify(apps));
+            }
+
+            // Supabase sync
+            const client = this.getSupabase();
+            if (client) {
+                try {
+                    await client.from('offer_letters').update({ 
+                        status: response, 
+                        responded_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    }).eq('offer_id', toUUID(offerId));
+                    if (appId) {
+                        await client.from('applications').update({ status: newAppStatus }).eq('application_id', toUUID(appId));
+                    }
+                } catch (e) {
+                    console.warn("Supabase respondToOffer notice:", e);
+                }
+            }
+
+            // Notify Company
+            this.addNotification({
+                userId: targetOffer.companyId || targetOffer.companyName,
+                userEmail: targetOffer.companyName,
+                title: `Offer ${response} by Candidate`,
+                message: `${targetOffer.candidateName} has ${response.toLowerCase()} the formal offer letter for "${targetOffer.position}".${response === 'Accepted' ? ` Confirmed Joining Date: ${targetOffer.joiningDate || targetOffer.joining_date}.` : ''}`,
+                type: response === 'Accepted' ? 'success' : 'warning',
+                link: 'company-dashboard.html'
+            });
+
+            window.dispatchEvent(new CustomEvent('smarthire_offer_updated', { detail: targetOffer }));
+            return targetOffer;
+        }
+
+        async fetchOffersFromSupabase() {
+            const client = this.getSupabase();
+            if (!client) return this.getOfferLetters();
+            try {
+                const { data, error } = await client.from('offer_letters').select('*').order('created_at', { ascending: false });
+                if (error || !data) return this.getOfferLetters();
+                const cloudOffers = data.map(o => ({
+                    id: o.offer_id,
+                    offer_id: o.offer_id,
+                    applicationId: o.application_id,
+                    application_id: o.application_id,
+                    jobId: o.job_id,
+                    job_id: o.job_id,
+                    companyId: o.company_id,
+                    company_id: o.company_id,
+                    candidateId: o.candidate_id,
+                    candidate_id: o.candidate_id,
+                    candidateEmail: o.candidate_email,
+                    candidate_email: o.candidate_email,
+                    candidateName: o.candidate_name,
+                    candidate_name: o.candidate_name,
+                    companyName: o.company_name,
+                    company_name: o.company_name,
+                    position: o.position,
+                    salaryCtc: o.salary_ctc,
+                    salary_ctc: o.salary_ctc,
+                    joiningDate: o.joining_date,
+                    joining_date: o.joining_date,
+                    employmentType: o.employment_type,
+                    employment_type: o.employment_type,
+                    workLocation: o.work_location,
+                    work_location: o.work_location,
+                    expiryDate: o.expiry_date,
+                    expiry_date: o.expiry_date,
+                    additionalTerms: o.additional_terms,
+                    additional_terms: o.additional_terms,
+                    status: o.status || 'Pending',
+                    sentAt: o.sent_at,
+                    sent_at: o.sent_at,
+                    responded_at: o.responded_at,
+                    createdAt: o.created_at,
+                    updatedAt: o.updated_at
+                }));
+
+                const localOffers = this.getOfferLetters();
+                const mergedMap = new Map();
+                cloudOffers.forEach(o => mergedMap.set(String(o.id), o));
+                localOffers.forEach(o => {
+                    const key = String(o.id || o.offer_id);
+                    if (!mergedMap.has(key)) mergedMap.set(key, o);
+                });
+                const mergedList = Array.from(mergedMap.values());
+                localStorage.setItem(STORAGE_KEYS.OFFERS, JSON.stringify(mergedList));
+                return mergedList;
+            } catch (e) {
+                return this.getOfferLetters();
+            }
+        }
+
+        // ==========================================
+        // 7. UNIFIED ALL-TABLE CLOUD SYNC
         // ==========================================
         async syncAllFromSupabase() {
             try {
                 await Promise.allSettled([
                     this.fetchJobsFromSupabase(),
                     this.fetchApplicationsFromSupabase(),
+                    this.fetchInterviewsFromSupabase(),
+                    this.fetchOffersFromSupabase(),
                     window.auth?.syncUsersFromSupabase?.()
                 ]);
                 console.log("🔄 Dual-Engine Database fully synced with Supabase PostgreSQL cloud!");

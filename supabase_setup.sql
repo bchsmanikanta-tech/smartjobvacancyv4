@@ -225,5 +225,67 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- 9. Interviews Table (Connected directly to applications)
+CREATE TABLE IF NOT EXISTS public.interviews (
+    interview_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    application_id UUID REFERENCES public.applications(application_id) ON DELETE CASCADE,
+    job_id UUID,
+    company_id UUID,
+    candidate_id UUID,
+    candidate_email VARCHAR(255) NOT NULL,
+    candidate_name VARCHAR(255),
+    company_name VARCHAR(255),
+    job_title VARCHAR(255),
+    interview_round VARCHAR(100) DEFAULT 'Technical Round 1',
+    interview_date DATE NOT NULL,
+    interview_time VARCHAR(50) NOT NULL,
+    interview_mode VARCHAR(50) DEFAULT 'Online', -- 'Online', 'Offline'
+    meeting_link TEXT,
+    location TEXT,
+    instructions TEXT,
+    status VARCHAR(50) DEFAULT 'Scheduled', -- 'Scheduled', 'Accepted', 'Rejected', 'Completed', 'Cancelled'
+    result VARCHAR(50) DEFAULT 'Pending', -- 'Pending', 'Selected', 'Rejected', 'On Hold'
+    candidate_response_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
 
+CREATE INDEX IF NOT EXISTS idx_interviews_application_id ON public.interviews(application_id);
+CREATE INDEX IF NOT EXISTS idx_interviews_company_id ON public.interviews(company_id);
+CREATE INDEX IF NOT EXISTS idx_interviews_candidate_email ON public.interviews(candidate_email);
 
+ALTER TABLE public.interviews ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public operations on interviews" ON public.interviews;
+CREATE POLICY "Allow public operations on interviews" ON public.interviews FOR ALL USING (true) WITH CHECK (true);
+
+-- 10. Offer Letters Table (Connected directly to applications)
+CREATE TABLE IF NOT EXISTS public.offer_letters (
+    offer_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    application_id UUID REFERENCES public.applications(application_id) ON DELETE CASCADE,
+    job_id UUID,
+    company_id UUID,
+    candidate_id UUID,
+    candidate_email VARCHAR(255) NOT NULL,
+    candidate_name VARCHAR(255),
+    company_name VARCHAR(255),
+    position VARCHAR(255) NOT NULL,
+    salary_ctc VARCHAR(100) NOT NULL,
+    joining_date DATE NOT NULL,
+    employment_type VARCHAR(50) DEFAULT 'Full-time',
+    work_location VARCHAR(255) DEFAULT 'Hybrid',
+    expiry_date DATE,
+    additional_terms TEXT,
+    status VARCHAR(50) DEFAULT 'Pending', -- 'Pending', 'Accepted', 'Rejected', 'Expired'
+    sent_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    responded_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_offer_letters_application_id ON public.offer_letters(application_id);
+CREATE INDEX IF NOT EXISTS idx_offer_letters_company_id ON public.offer_letters(company_id);
+CREATE INDEX IF NOT EXISTS idx_offer_letters_candidate_email ON public.offer_letters(candidate_email);
+
+ALTER TABLE public.offer_letters ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public operations on offer_letters" ON public.offer_letters;
+CREATE POLICY "Allow public operations on offer_letters" ON public.offer_letters FOR ALL USING (true) WITH CHECK (true);
