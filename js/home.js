@@ -428,9 +428,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const fullName = document.getElementById('modal-reg-fullname').value.trim();
             const email = document.getElementById('modal-reg-email').value.trim();
             const password = document.getElementById('modal-reg-password').value;
+            const confirmPassEl = document.getElementById('modal-reg-confirm-password');
+            const confirmPassword = confirmPassEl ? confirmPassEl.value : password;
             const roleEl = document.querySelector('input[name="modal-user-role"]:checked');
             const role = roleEl ? roleEl.value : 'seeker';
             const submitBtn = document.getElementById('btn-modal-submit-reg');
+            const confirmErrEl = document.getElementById('modal-reg-confirm-password-error');
+
+            if (confirmErrEl) confirmErrEl.textContent = '';
+
+            if (password !== confirmPassword) {
+                if (confirmErrEl) confirmErrEl.textContent = 'Passwords do not match';
+                showToast('Passwords do not match. Please verify your confirm password.', 'error');
+                return;
+            }
 
             if (submitBtn) {
                 submitBtn.disabled = true;

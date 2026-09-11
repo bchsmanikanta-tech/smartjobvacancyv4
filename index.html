@@ -666,8 +666,8 @@
                         </div>
                         <div class="input-wrapper">
                             <i class="fa-solid fa-lock input-icon"></i>
-                            <input type="password" id="modal-login-password" placeholder="••••••••" required>
-                            <button type="button" class="toggle-password" data-target="modal-login-password"><i class="fa-solid fa-eye"></i></button>
+                            <input type="password" id="modal-login-password" placeholder="••••••••" required autocomplete="current-password">
+                            <button type="button" class="toggle-password" data-target="modal-login-password" aria-label="Toggle password visibility" title="Show Password"><i class="fa-solid fa-eye"></i></button>
                         </div>
                         <span class="field-error" id="modal-login-password-error"></span>
                     </div>
@@ -729,10 +729,20 @@
                         <label for="modal-reg-password">Password</label>
                         <div class="input-wrapper">
                             <i class="fa-solid fa-lock input-icon"></i>
-                            <input type="password" id="modal-reg-password" placeholder="Min 8 characters" required>
-                            <button type="button" class="toggle-password" data-target="modal-reg-password"><i class="fa-solid fa-eye"></i></button>
+                            <input type="password" id="modal-reg-password" placeholder="••••••••" required autocomplete="new-password">
+                            <button type="button" class="toggle-password" data-target="modal-reg-password" aria-label="Toggle password visibility" title="Show Password"><i class="fa-solid fa-eye"></i></button>
                         </div>
                         <span class="field-error" id="modal-reg-password-error"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modal-reg-confirm-password">Confirm Password</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-shield-heart input-icon"></i>
+                            <input type="password" id="modal-reg-confirm-password" placeholder="••••••••" required autocomplete="new-password">
+                            <button type="button" class="toggle-password" data-target="modal-reg-confirm-password" aria-label="Toggle password visibility" title="Show Password"><i class="fa-solid fa-eye"></i></button>
+                        </div>
+                        <span class="field-error" id="modal-reg-confirm-password-error"></span>
                     </div>
 
                     <button type="submit" class="btn-primary w-full" id="btn-modal-submit-reg">

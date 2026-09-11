@@ -167,25 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // ---------------- PASSWORD TOGGLE ----------------
-    document.addEventListener('click', (e) => {
-        const btn = e.target.closest('.toggle-password');
-        if (!btn) return;
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const targetId = btn.getAttribute('data-target');
-        const targetInput = targetId ? document.getElementById(targetId) : btn.parentElement.querySelector('input[type="password"], input[type="text"]');
-        if (!targetInput) return;
-        
-        const isPassword = targetInput.type === 'password';
-        targetInput.type = isPassword ? 'text' : 'password';
-        
-        const icon = btn.querySelector('i');
-        if (icon) {
-            icon.className = isPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
-        }
-    });
+    // Note: Password visibility toggle (👁) is universally handled by the engine in js/auth.js
 
     // ---------------- PASSWORD STRENGTH METER ----------------
     if (regPasswordInput) {

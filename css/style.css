@@ -565,6 +565,12 @@ input:focus + .input-icon,
     color: var(--text-main);
 }
 
+.toggle-password:focus-visible {
+    outline: 2px solid var(--primary);
+    border-radius: 4px;
+    color: var(--text-main);
+}
+
 .field-error {
     font-size: 0.76rem;
     color: var(--danger);

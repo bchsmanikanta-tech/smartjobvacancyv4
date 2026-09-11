@@ -1070,3 +1070,65 @@ class AuthService {
 
 // Instantiate global auth instance
 window.auth = new AuthService();
+
+// ==========================================
+// UNIVERSAL PASSWORD VISIBILITY TOGGLE (👁)
+// ==========================================
+(function initPasswordVisibilityEngine() {
+    function handlePasswordToggle(e) {
+        const btn = e.target.closest('.toggle-password');
+        if (!btn) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const targetId = btn.getAttribute('data-target');
+        let targetInput = null;
+
+        if (targetId) {
+            targetInput = document.getElementById(targetId);
+        }
+        if (!targetInput) {
+            const wrapper = btn.closest('.input-wrapper') || btn.parentElement;
+            if (wrapper) {
+                targetInput = wrapper.querySelector('input[type="password"], input[type="text"]');
+            }
+        }
+
+        if (!targetInput) return;
+
+        const isCurrentlyPassword = targetInput.type === 'password';
+        const newType = isCurrentlyPassword ? 'text' : 'password';
+        const newLabel = isCurrentlyPassword ? 'Hide Password' : 'Show Password';
+        const newIconClass = isCurrentlyPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+
+        // Remember cursor position if active
+        const isFocused = (document.activeElement === targetInput);
+        const selStart = targetInput.selectionStart;
+        const selEnd = targetInput.selectionEnd;
+
+        // Toggle input type
+        targetInput.type = newType;
+
+        // Update button attributes
+        btn.setAttribute('aria-label', newLabel);
+        btn.setAttribute('title', newLabel);
+
+        // Update icon
+        const icon = btn.querySelector('i');
+        if (icon) {
+            icon.className = newIconClass;
+        }
+
+        // Restore focus/selection if was focused
+        if (isFocused) {
+            targetInput.focus();
+            if (selStart !== null && selEnd !== null) {
+                targetInput.setSelectionRange(selStart, selEnd);
+            }
+        }
+    }
+
+    // Attach click listener globally using capture or bubble
+    document.addEventListener('click', handlePasswordToggle);
+})();
