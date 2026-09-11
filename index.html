@@ -15,8 +15,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Core & Home Styles -->
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/home.css">
+    <link rel="stylesheet" href="css/style.css?v=20260911_1">
+    <link rel="stylesheet" href="css/home.css?v=20260911_1">
+    <script src="js/password-toggle.js?v=20260911_1"></script>
 </head>
 <body>
     <!-- Background Animated Shapes -->
@@ -667,7 +668,7 @@
                         <div class="input-wrapper">
                             <i class="fa-solid fa-lock input-icon"></i>
                             <input type="password" id="modal-login-password" placeholder="••••••••" required autocomplete="current-password">
-                            <button type="button" class="toggle-password" data-target="modal-login-password" aria-label="Toggle password visibility" title="Show Password"><i class="fa-solid fa-eye"></i></button>
+                            <button type="button" class="toggle-password" data-target="modal-login-password" onclick="togglePasswordVisibility(this)" aria-label="Toggle password visibility" title="Show Password"><i class="fa-solid fa-eye"></i></button>
                         </div>
                         <span class="field-error" id="modal-login-password-error"></span>
                     </div>
@@ -730,7 +731,7 @@
                         <div class="input-wrapper">
                             <i class="fa-solid fa-lock input-icon"></i>
                             <input type="password" id="modal-reg-password" placeholder="••••••••" required autocomplete="new-password">
-                            <button type="button" class="toggle-password" data-target="modal-reg-password" aria-label="Toggle password visibility" title="Show Password"><i class="fa-solid fa-eye"></i></button>
+                            <button type="button" class="toggle-password" data-target="modal-reg-password" onclick="togglePasswordVisibility(this)" aria-label="Toggle password visibility" title="Show Password"><i class="fa-solid fa-eye"></i></button>
                         </div>
                         <span class="field-error" id="modal-reg-password-error"></span>
                     </div>
@@ -740,7 +741,7 @@
                         <div class="input-wrapper">
                             <i class="fa-solid fa-shield-heart input-icon"></i>
                             <input type="password" id="modal-reg-confirm-password" placeholder="••••••••" required autocomplete="new-password">
-                            <button type="button" class="toggle-password" data-target="modal-reg-confirm-password" aria-label="Toggle password visibility" title="Show Password"><i class="fa-solid fa-eye"></i></button>
+                            <button type="button" class="toggle-password" data-target="modal-reg-confirm-password" onclick="togglePasswordVisibility(this)" aria-label="Toggle password visibility" title="Show Password"><i class="fa-solid fa-eye"></i></button>
                         </div>
                         <span class="field-error" id="modal-reg-confirm-password-error"></span>
                     </div>
@@ -826,9 +827,9 @@
 
     <!-- Supabase JS Client SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase-config.js?v=20260825_3"></script>
-    <script src="js/auth.js?v=20260825_3"></script>
-    <script src="js/db.js?v=20260825_3"></script>
-    <script src="js/home.js?v=20260825_3"></script>
+    <script src="js/supabase-config.js?v=20260911_pwd2"></script>
+    <script src="js/auth.js?v=20260911_pwd2"></script>
+    <script src="js/db.js?v=20260911_pwd2"></script>
+    <script src="js/home.js?v=20260911_pwd2"></script>
 </body>
 </html>

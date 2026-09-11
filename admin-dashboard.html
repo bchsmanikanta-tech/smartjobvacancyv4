@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/password-toggle.js?v=20260911_1"></script>
 
     <style>
         :root {
@@ -1174,7 +1175,7 @@
                             <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">Current Password</label>
                             <div class="input-wrapper">
                                 <input type="password" id="set-curr-pass" placeholder="••••••••" class="form-input" style="padding-right: 36px;" required>
-                                <button type="button" class="toggle-password" data-target="set-curr-pass" aria-label="Toggle password visibility" title="Show Password">
+                                <button type="button" class="toggle-password" data-target="set-curr-pass" onclick="togglePasswordVisibility(this)" aria-label="Toggle password visibility" title="Show Password">
                                     <i class="fa-solid fa-eye"></i>
                                 </button>
                             </div>
@@ -1183,7 +1184,7 @@
                             <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">New Password</label>
                             <div class="input-wrapper">
                                 <input type="password" id="set-new-pass" placeholder="••••••••" class="form-input" style="padding-right: 36px;" required>
-                                <button type="button" class="toggle-password" data-target="set-new-pass" aria-label="Toggle password visibility" title="Show Password">
+                                <button type="button" class="toggle-password" data-target="set-new-pass" onclick="togglePasswordVisibility(this)" aria-label="Toggle password visibility" title="Show Password">
                                     <i class="fa-solid fa-eye"></i>
                                 </button>
                             </div>

@@ -558,7 +558,12 @@ input:focus + .input-icon,
     align-items: center;
     justify-content: center;
     transition: var(--transition);
-    z-index: 5;
+    z-index: 10;
+    pointer-events: auto !important;
+}
+
+.toggle-password i {
+    pointer-events: none !important;
 }
 
 .toggle-password:hover {

@@ -1075,60 +1075,51 @@ window.auth = new AuthService();
 // UNIVERSAL PASSWORD VISIBILITY TOGGLE (👁)
 // ==========================================
 (function initPasswordVisibilityEngine() {
-    function handlePasswordToggle(e) {
-        const btn = e.target.closest('.toggle-password');
-        if (!btn) return;
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        const targetId = btn.getAttribute('data-target');
-        let targetInput = null;
-
-        if (targetId) {
-            targetInput = document.getElementById(targetId);
-        }
-        if (!targetInput) {
-            const wrapper = btn.closest('.input-wrapper') || btn.parentElement;
-            if (wrapper) {
-                targetInput = wrapper.querySelector('input[type="password"], input[type="text"]');
+    if (typeof window.togglePasswordVisibility !== 'function') {
+        window.togglePasswordVisibility = function(trigger, event) {
+            if (event) {
+                if (event.preventDefault) event.preventDefault();
+                if (event.stopPropagation) event.stopPropagation();
             }
-        }
+            if (!trigger) return;
+            const btn = (trigger instanceof HTMLElement) 
+                ? (trigger.closest('.toggle-password') || trigger) 
+                : document.querySelector(`[data-target="${trigger}"]`);
+            if (!btn) return;
 
-        if (!targetInput) return;
+            const now = Date.now();
+            if (btn._lastToggled && (now - btn._lastToggled < 300)) return;
+            btn._lastToggled = now;
 
-        const isCurrentlyPassword = targetInput.type === 'password';
-        const newType = isCurrentlyPassword ? 'text' : 'password';
-        const newLabel = isCurrentlyPassword ? 'Hide Password' : 'Show Password';
-        const newIconClass = isCurrentlyPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
-
-        // Remember cursor position if active
-        const isFocused = (document.activeElement === targetInput);
-        const selStart = targetInput.selectionStart;
-        const selEnd = targetInput.selectionEnd;
-
-        // Toggle input type
-        targetInput.type = newType;
-
-        // Update button attributes
-        btn.setAttribute('aria-label', newLabel);
-        btn.setAttribute('title', newLabel);
-
-        // Update icon
-        const icon = btn.querySelector('i');
-        if (icon) {
-            icon.className = newIconClass;
-        }
-
-        // Restore focus/selection if was focused
-        if (isFocused) {
-            targetInput.focus();
-            if (selStart !== null && selEnd !== null) {
-                targetInput.setSelectionRange(selStart, selEnd);
+            const targetId = btn.getAttribute('data-target');
+            let input = targetId ? document.getElementById(targetId) : null;
+            if (!input) {
+                const wrapper = btn.closest('.input-wrapper') || btn.parentElement;
+                if (wrapper) input = wrapper.querySelector('input');
             }
-        }
+            if (!input) return;
+
+            const isPassword = (input.type === 'password' || input.getAttribute('type') === 'password');
+            const newType = isPassword ? 'text' : 'password';
+            input.setAttribute('type', newType);
+            input.type = newType;
+
+            const newLabel = isPassword ? 'Hide Password' : 'Show Password';
+            btn.setAttribute('title', newLabel);
+            btn.setAttribute('aria-label', newLabel);
+
+            const icon = btn.querySelector('i');
+            if (icon) icon.className = isPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+
+            if (!input.value) {
+                if (isPassword) {
+                    if (!input.getAttribute('data-prev-ph')) input.setAttribute('data-prev-ph', input.placeholder || '');
+                    input.placeholder = 'Password (visible)';
+                } else {
+                    input.placeholder = input.getAttribute('data-prev-ph') || '••••••••';
+                }
+            }
+            input.focus();
+        };
     }
-
-    // Attach click listener globally using capture or bubble
-    document.addEventListener('click', handlePasswordToggle);
 })();
