@@ -2575,16 +2575,16 @@
                 currentEmployerId = user.companyId || user.company_id || user.id || '';
             }
 
-            if (q.name) {
-                currentEmployerName = decodeURIComponent(q.name);
+            if (q.name && q.name.trim()) {
+                currentEmployerName = decodeURIComponent(q.name).trim();
             } else if (user) {
-                currentEmployerName = user.companyName || user.fullName || user.email.split('@')[0];
+                currentEmployerName = (user.companyName || user.fullName || (user.email ? user.email.split('@')[0] : 'Company')).trim();
             }
 
-            if (q.email) {
-                currentEmployerEmail = decodeURIComponent(q.email);
-            } else if (user) {
-                currentEmployerEmail = user.email;
+            if (q.email && q.email.trim()) {
+                currentEmployerEmail = decodeURIComponent(q.email).trim().toLowerCase();
+            } else if (user && user.email) {
+                currentEmployerEmail = user.email.trim().toLowerCase();
             }
 
             // Update Header Name
@@ -2766,6 +2766,7 @@
             localStorage.removeItem('smartjob_remember_user');
             localStorage.removeItem('smartjob_active_session');
             localStorage.removeItem('smartjob_active_user');
+            localStorage.removeItem('smarthire_seeker_profiles');
             if (window.auth && typeof window.auth.logout === 'function') {
                 window.auth.logout();
             } else {

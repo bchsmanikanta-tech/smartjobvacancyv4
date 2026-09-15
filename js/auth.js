@@ -71,6 +71,12 @@ class AuthService {
             this.supabaseClient.auth.onAuthStateChange(async (event, session) => {
                 console.log(`🔐 Supabase Auth Event: ${event}`, session?.user?.email || '');
                 if (session && session.user) {
+                    const activeUser = this.getCurrentUser();
+                    // Prevent a stale or previous account's session from hijacking the active user
+                    if (activeUser && activeUser.email && session.user.email && activeUser.email.toLowerCase() !== session.user.email.toLowerCase()) {
+                        console.warn("Ignoring Supabase auth event for different account:", session.user.email);
+                        return;
+                    }
                     this.currentSession = session;
                     // Retrieve/sync profile
                     await this._syncUserProfile(session.user);
@@ -80,6 +86,7 @@ class AuthService {
                     sessionStorage.removeItem(AUTH_CONFIG.STORAGE_SESSION_KEY);
                     localStorage.removeItem(AUTH_CONFIG.STORAGE_REMEMBER_KEY);
                     localStorage.removeItem(AUTH_CONFIG.STORAGE_USER_CACHE);
+                    localStorage.removeItem('smarthire_seeker_profiles');
                 }
             });
         } catch (e) {
@@ -115,6 +122,20 @@ class AuthService {
     async register(userData) {
         console.log("📝 [REGISTER] Signup function called for email:", userData.email ? userData.email.trim().toLowerCase() : '(none)', "Role:", userData.role);
 
+        // Pre-registration cleanup: thoroughly purge old session, cache, and profile data from any previous account
+        this.currentUser = null;
+        this.currentSession = null;
+        try {
+            sessionStorage.clear();
+            localStorage.removeItem(AUTH_CONFIG.STORAGE_SESSION_KEY);
+            localStorage.removeItem(AUTH_CONFIG.STORAGE_REMEMBER_KEY);
+            localStorage.removeItem(AUTH_CONFIG.STORAGE_USER_CACHE);
+            localStorage.removeItem('smartjob_remember_user');
+            localStorage.removeItem('smartjob_active_session');
+            localStorage.removeItem('smartjob_active_user');
+            localStorage.removeItem('smarthire_seeker_profiles');
+        } catch (e) {}
+
         if (!this.supabaseClient) {
             this.initSupabase();
             if (!this.supabaseClient) {
@@ -122,6 +143,13 @@ class AuthService {
                 throw new Error("Cannot connect to Supabase Cloud Authentication. Please check your Supabase settings.");
             }
         }
+
+        // Sign out any active Supabase session from a previous account so token is cleared
+        try {
+            if (this.supabaseClient) {
+                await this.supabaseClient.auth.signOut();
+            }
+        } catch (e) {}
 
         const { fullName, email, phone, password, role, location } = userData;
         const normalizedEmail = email.trim().toLowerCase();
@@ -261,7 +289,7 @@ class AuthService {
             createdAt: new Date().toISOString()
         };
 
-        // Cache user in local database as well
+        // Pre-seed scoped profile in local storage strictly for this user
         try {
             let localUsers = JSON.parse(localStorage.getItem('smartjob_users_db') || '[]');
             const existsIdx = localUsers.findIndex(u => u.email && u.email.toLowerCase() === normalizedEmail);
@@ -275,24 +303,40 @@ class AuthService {
             if (normalizedRole === 'company') {
                 const compProfile = {
                     name: fullName.trim(),
+                    companyName: fullName.trim(),
                     email: normalizedEmail,
                     phone: phone ? phone.trim() : '',
                     location: location ? location.trim() : '',
                     industry: 'Technology',
                     about: 'Registered Employer on Smart Job Portal',
-                    status: 'approved'
+                    status: 'approved',
+                    updatedAt: new Date().toISOString()
                 };
                 localStorage.setItem(`company_profile_${normalizedEmail}`, JSON.stringify(compProfile));
+                localStorage.setItem(`company_profile_${userId}`, JSON.stringify(compProfile));
+            } else {
+                // Pre-seed candidate profile so newly registered seeker is guaranteed to load their own profile
+                const seekerProfile = {
+                    id: userId,
+                    fullName: fullName.trim(),
+                    full_name: fullName.trim(),
+                    email: normalizedEmail,
+                    phone: phone ? phone.trim() : '',
+                    location: location ? location.trim() : '',
+                    qualification: '',
+                    skills: [],
+                    updatedAt: new Date().toISOString()
+                };
+                localStorage.setItem(`smarthire_profile_${normalizedEmail}`, JSON.stringify(seekerProfile));
+                localStorage.setItem(`smarthire_profile_${userId}`, JSON.stringify(seekerProfile));
+                // Update legacy fallback key with this new user's profile to prevent stale account contamination
+                localStorage.setItem('smarthire_seeker_profiles', JSON.stringify(seekerProfile));
             }
         } catch (err) {}
 
-        // If session was established immediately (e.g. email confirmation off or auto-confirmed)
-        if (authData.session) {
-            this.createSession(userObj, true);
-        } else {
-            // Cache user so they can still transition smoothly if confirmation is not enforced
-            this.createSession(userObj, true);
-        }
+        // Establish session cleanly for the newly registered user
+        this.createSession(userObj, true);
+        this.currentUser = userObj;
 
         return {
             success: true,
@@ -576,10 +620,17 @@ class AuthService {
      * Restore session from Supabase on app load
      */
     async restoreSession() {
-        if (!this.supabaseClient) return null;
+        const activeUser = this.getCurrentUser();
+        if (!this.supabaseClient) return activeUser;
         try {
             const { data, error } = await this.supabaseClient.auth.getSession();
             if (!error && data?.session?.user) {
+                // If active user is present and doesn't match the Supabase session, Supabase has a stale token from another user!
+                if (activeUser && activeUser.email && data.session.user.email && activeUser.email.toLowerCase() !== data.session.user.email.toLowerCase()) {
+                    console.warn("⚠️ Stale Supabase session detected for different account:", data.session.user.email, "- active user is:", activeUser.email);
+                    try { await this.supabaseClient.auth.signOut(); } catch(e) {}
+                    return activeUser;
+                }
                 this.currentSession = data.session;
                 const user = await this._syncUserProfile(data.session.user);
                 this.createSession(user, true);
@@ -695,6 +746,7 @@ class AuthService {
         localStorage.removeItem('smartjob_remember_user');
         localStorage.removeItem('smartjob_active_session');
         localStorage.removeItem('smartjob_active_user');
+        localStorage.removeItem('smarthire_seeker_profiles');
         window.location.replace('index.html');
     }
 

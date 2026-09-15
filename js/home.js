@@ -401,7 +401,8 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const res = await window.auth.login(email, password, true);
                 showToast(`Welcome back, ${res.user.fullName}! Redirecting...`, 'success');
-                const dest = window.auth.getRoleRedirectUrl(res.user.role);
+                const baseUrl = window.auth.getRoleRedirectUrl(res.user.role);
+                const dest = `${baseUrl}?name=${encodeURIComponent(res.user.fullName)}&email=${encodeURIComponent(res.user.email)}&role=${encodeURIComponent(res.user.role)}&phone=${encodeURIComponent(res.user.phone || '')}`;
                 setTimeout(() => {
                     window.location.href = dest;
                 }, 400);
@@ -451,7 +452,8 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const res = await window.auth.register({ fullName, email, password, role });
                 showToast(res.message || `Welcome to SmartHire AI, ${res.user.fullName}!`, 'success');
-                const dest = window.auth.getRoleRedirectUrl(res.user.role);
+                const baseUrl = window.auth.getRoleRedirectUrl(res.user.role);
+                const dest = `${baseUrl}?name=${encodeURIComponent(res.user.fullName)}&email=${encodeURIComponent(res.user.email)}&role=${encodeURIComponent(res.user.role)}&phone=${encodeURIComponent(res.user.phone || '')}`;
                 setTimeout(() => {
                     window.location.href = dest;
                 }, 1200);

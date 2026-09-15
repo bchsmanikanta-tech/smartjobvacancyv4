@@ -501,7 +501,7 @@
 
             // Prefill from profile if available
             const profile = window.db?.getSeekerProfile ? window.db.getSeekerProfile(currentSeekerEmail) : null;
-            if (profile) {
+            if (profile && (!profile.email || profile.email.toLowerCase() === currentSeekerEmail.toLowerCase())) {
                 if (profile.fullName && !currentSeekerName) {
                     currentSeekerName = profile.fullName;
                     document.getElementById('app-full-name').value = currentSeekerName;

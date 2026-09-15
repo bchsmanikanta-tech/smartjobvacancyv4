@@ -643,8 +643,11 @@
 
             // 1. Store scoped per user
             localStorage.setItem(`smarthire_profile_${userKey}`, JSON.stringify(updated));
+            if (updated.id) {
+                localStorage.setItem(`smarthire_profile_${updated.id}`, JSON.stringify(updated));
+            }
             // Also update active session cache if matches
-            if (currentUser && (currentUser.email.toLowerCase() === userKey || currentUser.id === userKey)) {
+            if (currentUser && (currentUser.email?.toLowerCase() === userKey || currentUser.id === userKey)) {
                 const refreshedUser = { ...currentUser, ...updated };
                 localStorage.setItem('smartjob_active_user', JSON.stringify(refreshedUser));
                 sessionStorage.setItem('smartjob_active_user', JSON.stringify(refreshedUser));
@@ -694,15 +697,38 @@
             if (userKey !== 'default') {
                 try {
                     const scoped = JSON.parse(localStorage.getItem(`smarthire_profile_${userKey}`));
-                    if (scoped) return scoped;
+                    if (scoped && (!scoped.email || scoped.email.toLowerCase() === userKey)) {
+                        return scoped;
+                    }
                 } catch (e) {}
             }
 
+            // Only check legacy fallback if userKey is 'default' or if it matches the current user
             try {
-                return JSON.parse(localStorage.getItem(STORAGE_KEYS.PROFILES)) || null;
-            } catch (e) {
-                return null;
+                const legacy = JSON.parse(localStorage.getItem(STORAGE_KEYS.PROFILES));
+                if (legacy) {
+                    const legacyEmail = (legacy.email || '').trim().toLowerCase();
+                    const legacyId = (legacy.id || legacy.userId || '').trim().toLowerCase();
+                    // NEVER return legacy profile if it belongs to a different email/id
+                    if (userKey === 'default' || legacyEmail === userKey || legacyId === userKey) {
+                        return legacy;
+                    }
+                }
+            } catch (e) {}
+
+            // If no profile found but we have currentUser matching userKey, synthesize profile from currentUser
+            if (currentUser && (userKey === 'default' || currentUser.email?.toLowerCase() === userKey || currentUser.id === userKey)) {
+                return {
+                    id: currentUser.id,
+                    fullName: currentUser.fullName || currentUser.full_name || '',
+                    email: currentUser.email || '',
+                    phone: currentUser.phone || '',
+                    location: currentUser.location || '',
+                    role: currentUser.role || 'job_seeker'
+                };
             }
+
+            return null;
         }
 
         // ==========================================

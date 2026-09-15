@@ -3093,30 +3093,52 @@
             const q = getQueryParams();
             const user = window.auth?.getCurrentUser();
 
-            if (q.name) {
-                currentSeekerName = decodeURIComponent(q.name);
-            } else if (user) {
-                currentSeekerName = user.fullName || user.email.split('@')[0];
+            // Priority: URL query param (explicit from login/register redirect) -> active session user -> fallback
+            if (q.name && q.name.trim()) {
+                currentSeekerName = decodeURIComponent(q.name).trim();
+            } else if (user && user.fullName && user.fullName.trim()) {
+                currentSeekerName = user.fullName.trim();
+            } else if (user && user.email) {
+                currentSeekerName = user.email.split('@')[0];
             }
 
-            if (q.email) {
-                currentSeekerEmail = decodeURIComponent(q.email);
-            } else if (user) {
-                currentSeekerEmail = user.email;
+            if (q.email && q.email.trim()) {
+                currentSeekerEmail = decodeURIComponent(q.email).trim().toLowerCase();
+            } else if (user && user.email) {
+                currentSeekerEmail = user.email.trim().toLowerCase();
             }
 
-            document.getElementById('seeker-welcome-heading').textContent = `Welcome Back, ${currentSeekerName}! 👋`;
+            // Immediately set the welcome banner with the current authenticated user's name
+            const welcomeHeading = document.getElementById('seeker-welcome-heading');
+            if (welcomeHeading) {
+                welcomeHeading.textContent = `Welcome Back, ${currentSeekerName}! 👋`;
+            }
 
             // Profile Inputs & Profile Loading
-            document.getElementById('seeker-name-input').value = currentSeekerName;
-            document.getElementById('seeker-email-input').value = currentSeekerEmail;
+            if (document.getElementById('seeker-name-input')) {
+                document.getElementById('seeker-name-input').value = currentSeekerName;
+            }
+            if (document.getElementById('seeker-email-input')) {
+                document.getElementById('seeker-email-input').value = currentSeekerEmail;
+            }
+
+            // Pre-fill phone from query or active user if available
+            const userPhone = q.phone ? decodeURIComponent(q.phone).trim() : (user?.phone || '');
+            if (userPhone && document.getElementById('seeker-phone-input')) {
+                document.getElementById('seeker-phone-input').value = userPhone;
+            }
 
             const profile = window.db?.getSeekerProfile ? window.db.getSeekerProfile(currentSeekerEmail) : null;
-            if (profile) {
-                if (profile.fullName) {
-                    currentSeekerName = profile.fullName;
-                    document.getElementById('seeker-name-input').value = profile.fullName;
-                    document.getElementById('seeker-welcome-heading').textContent = `Welcome Back, ${currentSeekerName}! 👋`;
+            // STRICT VALIDATION: Only use profile if it strictly belongs to currentSeekerEmail!
+            if (profile && (!profile.email || profile.email.toLowerCase() === currentSeekerEmail.toLowerCase())) {
+                if (profile.fullName && profile.fullName.trim()) {
+                    currentSeekerName = profile.fullName.trim();
+                    if (document.getElementById('seeker-name-input')) {
+                        document.getElementById('seeker-name-input').value = currentSeekerName;
+                    }
+                    if (welcomeHeading) {
+                        welcomeHeading.textContent = `Welcome Back, ${currentSeekerName}! 👋`;
+                    }
                 }
                 if (document.getElementById('seeker-qualification-input') && profile.qualification) {
                     document.getElementById('seeker-qualification-input').value = profile.qualification;
@@ -3143,10 +3165,12 @@
                     if (document.getElementById('rb-skills') && profile.resumeData.skills) document.getElementById('rb-skills').value = profile.resumeData.skills;
                     if (document.getElementById('rb-summary') && profile.resumeData.summary) document.getElementById('rb-summary').value = profile.resumeData.summary;
                 } else {
-                    if (document.getElementById('rb-phone') && profile.phone) document.getElementById('rb-phone').value = profile.phone;
+                    if (document.getElementById('rb-phone') && (profile.phone || userPhone)) document.getElementById('rb-phone').value = profile.phone || userPhone;
                     if (document.getElementById('rb-location') && profile.location) document.getElementById('rb-location').value = profile.location;
                     if (document.getElementById('rb-skills') && profile.skills) document.getElementById('rb-skills').value = Array.isArray(profile.skills) ? profile.skills.join(', ') : profile.skills;
                 }
+            } else if (userPhone && document.getElementById('rb-phone')) {
+                document.getElementById('rb-phone').value = userPhone;
             }
 
             // Load Active Jobs & Scoped Candidate Applications counts
@@ -6305,6 +6329,7 @@ class LRUCache:
             localStorage.removeItem('smartjob_remember_user');
             localStorage.removeItem('smartjob_active_session');
             localStorage.removeItem('smartjob_active_user');
+            localStorage.removeItem('smarthire_seeker_profiles');
             if (window.auth && typeof window.auth.logout === 'function') {
                 window.auth.logout();
             } else {

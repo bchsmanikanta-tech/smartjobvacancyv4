@@ -240,7 +240,8 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const response = await window.auth.login(emailInput.value, passwordInput.value, rememberMe);
                 showToast(`Welcome back, ${response.user.fullName}!`, 'success');
-                const dest = window.auth.getRoleRedirectUrl(response.user.role);
+                const baseUrl = window.auth.getRoleRedirectUrl(response.user.role);
+                const dest = `${baseUrl}?name=${encodeURIComponent(response.user.fullName)}&email=${encodeURIComponent(response.user.email)}&role=${encodeURIComponent(response.user.role)}&phone=${encodeURIComponent(response.user.phone || '')}`;
                 setTimeout(() => {
                     window.location.href = dest;
                 }, 900);
@@ -316,7 +317,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 showToast(`Account created successfully! Welcome, ${response.user.fullName}`, 'success');
-                const dest = window.auth.getRoleRedirectUrl(response.user.role);
+                const baseUrl = window.auth.getRoleRedirectUrl(response.user.role);
+                const dest = `${baseUrl}?name=${encodeURIComponent(response.user.fullName)}&email=${encodeURIComponent(response.user.email)}&role=${encodeURIComponent(response.user.role)}&phone=${encodeURIComponent(response.user.phone || '')}`;
                 setTimeout(() => {
                     window.location.href = dest;
                 }, 1000);
