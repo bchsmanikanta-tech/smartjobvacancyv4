@@ -73,16 +73,13 @@ while ($listener.IsListening) {
 
                 $psi = New-Object System.Diagnostics.ProcessStartInfo
                 $psi.FileName = "python"
-                $psi.Arguments = "`"$pythonScript`""
-                $psi.RedirectStandardInput = $true
+                $psi.Arguments = "`"$pythonScript`" --json-file `"$tempInputFile`""
                 $psi.RedirectStandardOutput = $true
                 $psi.RedirectStandardError = $true
                 $psi.UseShellExecute = $false
                 $psi.CreateNoWindow = $true
 
                 $proc = [System.Diagnostics.Process]::Start($psi)
-                $proc.StandardInput.Write($body)
-                $proc.StandardInput.Close()
                 $output = $proc.StandardOutput.ReadToEnd()
                 $errOutput = $proc.StandardError.ReadToEnd()
                 $proc.WaitForExit()
@@ -98,8 +95,8 @@ while ($listener.IsListening) {
                     $errJson = @{
                         success = $false
                         readable = $false
-                        error = if ($errOutput) { $errOutput } else { "Failed to run Python analyzer." }
-                    } | ConvertTo-Json
+                        error = if ($errOutput) { $errOutput.Trim() } else { "Failed to run Python analyzer." }
+                    } | ConvertTo-Json -Compress
                     $responseBytes = [System.Text.Encoding]::UTF8.GetBytes($errJson)
                     $response.StatusCode = 200
                 }
@@ -108,14 +105,20 @@ while ($listener.IsListening) {
                     success = $false
                     readable = $false
                     error = $_.Exception.Message
-                } | ConvertTo-Json
+                } | ConvertTo-Json -Compress
                 $responseBytes = [System.Text.Encoding]::UTF8.GetBytes($errJson)
                 $response.StatusCode = 500
             }
 
-            $response.ContentLength64 = $responseBytes.Length
-            $response.OutputStream.Write($responseBytes, 0, $responseBytes.Length)
-            $response.OutputStream.Close()
+            try {
+                $response.ContentType = "application/json; charset=utf-8"
+                $response.AddHeader("Access-Control-Allow-Origin", "*")
+                $response.ContentLength64 = $responseBytes.Length
+                $response.OutputStream.Write($responseBytes, 0, $responseBytes.Length)
+                $response.OutputStream.Close()
+            } catch {
+                # Ignore close exceptions
+            }
             continue
         }
 

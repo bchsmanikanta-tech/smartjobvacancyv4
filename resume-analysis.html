@@ -1327,53 +1327,64 @@
             }, 800);
 
             try {
-                // Try backend endpoints in order:
-                // 1. Same-origin /api/analyze-resume (handled by server.js or serve.ps1)
-                // 2. Standalone Python microservice http://localhost:5005/api/analyze-resume
+                if (!selectedFileBase64) {
+                    selectedFileBase64 = await new Promise((resolve, reject) => {
+                        const r = new FileReader();
+                        r.onload = (e) => resolve(e.target.result.split(',')[1]);
+                        r.onerror = reject;
+                        r.readAsDataURL(selectedFile);
+                    });
+                }
+
                 let analysisData = null;
+                let lastError = null;
 
                 const payload = {
                     filename: selectedFile.name,
                     base64: selectedFileBase64
                 };
 
-                let response = null;
-                try {
-                    response = await fetch('/api/analyze-resume', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                } catch (e) {
-                    console.log('Local origin API not reachable, trying microservice port 5005...', e);
-                }
+                const candidateEndpoints = [
+                    '/api/analyze-resume',
+                    'http://localhost:8080/api/analyze-resume',
+                    'http://127.0.0.1:8080/api/analyze-resume',
+                    'http://localhost:5005/api/analyze-resume',
+                    'http://127.0.0.1:5005/api/analyze-resume'
+                ];
 
-                if (!response || !response.ok) {
+                for (const ep of candidateEndpoints) {
                     try {
-                        response = await fetch('http://localhost:5005/api/analyze-resume', {
+                        const response = await fetch(ep, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(payload)
                         });
-                    } catch (e) {
-                        console.log('Microservice port 5005 not reachable:', e);
+
+                        if (response && response.ok) {
+                            const rawText = await response.text();
+                            if (rawText && rawText.trim()) {
+                                const parsed = JSON.parse(rawText);
+                                if (parsed.success !== false) {
+                                    analysisData = parsed;
+                                    break;
+                                } else {
+                                    lastError = parsed.error || "Could not read the resume document.";
+                                    break;
+                                }
+                            }
+                        } else if (response) {
+                            try {
+                                const errJson = await response.json();
+                                if (errJson.error) lastError = errJson.error;
+                            } catch (_) {}
+                        }
+                    } catch (netErr) {
+                        console.log(`Endpoint ${ep} not reachable:`, netErr.message);
                     }
                 }
 
-                if (response && response.ok) {
-                    analysisData = await response.json();
-                } else if (response) {
-                    const errRes = await response.json().catch(() => ({}));
-                    throw new Error(errRes.error || `Server responded with status ${response.status}`);
-                }
-
-                // If no server responded, execute fallback text parser if text file
                 if (!analysisData) {
-                    throw new Error("Backend Python extractor service is not currently responding. Please make sure the local server is running.");
-                }
-
-                if (analysisData.success === false) {
-                    throw new Error(analysisData.error || "Could not read the resume document.");
+                    throw new Error(lastError || "Backend Python extractor service is not currently responding. Please make sure the local server is running.");
                 }
 
                 currentAnalysisResult = analysisData;

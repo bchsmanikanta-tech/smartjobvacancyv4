@@ -5014,41 +5014,64 @@
             }, 800);
 
             try {
+                if (!tabRaSelectedBase64) {
+                    tabRaSelectedBase64 = await new Promise((resolve, reject) => {
+                        const r = new FileReader();
+                        r.onload = (e) => resolve(e.target.result.split(',')[1]);
+                        r.onerror = reject;
+                        r.readAsDataURL(tabRaSelectedFile);
+                    });
+                }
+
                 const payload = {
                     filename: tabRaSelectedFile.name,
                     base64: tabRaSelectedBase64
                 };
 
-                let response = null;
-                try {
-                    response = await fetch('/api/analyze-resume', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                } catch (e) {
-                    console.log('Local origin API not reachable, trying microservice port 5005...', e);
-                }
+                const candidateEndpoints = [
+                    '/api/analyze-resume',
+                    'http://localhost:8080/api/analyze-resume',
+                    'http://127.0.0.1:8080/api/analyze-resume',
+                    'http://localhost:5005/api/analyze-resume',
+                    'http://127.0.0.1:5005/api/analyze-resume'
+                ];
 
-                if (!response || !response.ok) {
+                let data = null;
+                let lastError = null;
+
+                for (const ep of candidateEndpoints) {
                     try {
-                        response = await fetch('http://localhost:5005/api/analyze-resume', {
+                        const response = await fetch(ep, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(payload)
                         });
-                    } catch (e) {
-                        console.log('Microservice port 5005 not reachable:', e);
+
+                        if (response && response.ok) {
+                            const rawText = await response.text();
+                            if (rawText && rawText.trim()) {
+                                const parsed = JSON.parse(rawText);
+                                if (parsed.success !== false) {
+                                    data = parsed;
+                                    break;
+                                } else {
+                                    lastError = parsed.error || "Failed to parse resume document.";
+                                    break;
+                                }
+                            }
+                        } else if (response) {
+                            try {
+                                const errJson = await response.json();
+                                if (errJson.error) lastError = errJson.error;
+                            } catch (_) {}
+                        }
+                    } catch (netErr) {
+                        console.log(`Endpoint ${ep} not reachable:`, netErr.message);
                     }
                 }
 
-                if (!response) {
-                    throw new Error("Cannot connect to Python analysis backend. Please make sure the local server is running.");
-                }
-
-                const data = await response.json();
-                if (data.success === false) {
-                    throw new Error(data.error || "Failed to parse resume document.");
+                if (!data) {
+                    throw new Error(lastError || "Cannot connect to Python analysis backend. Please ensure server is running.");
                 }
 
                 clearInterval(t);

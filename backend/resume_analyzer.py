@@ -79,7 +79,7 @@ def extract_text_from_scanned_pdf(file_path: str) -> str:
                         if res.returncode == 0 and res.stdout.strip():
                             page_text.append(res.stdout.strip())
                     except Exception as ocr_err:
-                        print(f"OCR warning: {ocr_err}")
+                        sys.stderr.write(f"OCR warning: {ocr_err}\n")
                     finally:
                         if os.path.exists(tmp_img_path):
                             try:
@@ -91,7 +91,7 @@ def extract_text_from_scanned_pdf(file_path: str) -> str:
 
         return "\n\n".join(all_ocr_text).strip()
     except Exception as e:
-        print(f"OCR fallback error: {e}")
+        sys.stderr.write(f"OCR fallback error: {e}\n")
         return ""
 
 
@@ -941,11 +941,38 @@ def main():
     parser.add_argument("--file", help="Path to resume file (PDF, DOCX, DOC)")
     parser.add_argument("--name", help="Original filename", default="")
     parser.add_argument("--json-input", help="Direct JSON payload with base64 data", default="")
+    parser.add_argument("--json-file", help="Path to JSON file containing payload with base64 data", default="")
     args = parser.parse_args()
+
+    if args.json_file:
+        try:
+            with open(args.json_file, 'r', encoding='utf-8-sig') as jf:
+                data = json.load(jf)
+            filename = data.get("filename", "resume.pdf")
+            b64_content = data.get("base64", "")
+            
+            import tempfile
+            ext = os.path.splitext(filename)[1] or ".pdf"
+            with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
+                tmp.write(base64.b64decode(b64_content))
+                tmp_path = tmp.name
+
+            result = analyze_resume_file(tmp_path, original_filename=filename)
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
+
+            print(json.dumps(result, indent=2))
+            return
+        except Exception as e:
+            print(json.dumps({"success": False, "error": str(e), "readable": False}))
+            sys.exit(1)
 
     if args.json_input:
         try:
-            data = json.loads(args.json_input)
+            cleaned_input = args.json_input.lstrip('\ufeff')
+            data = json.loads(cleaned_input)
             filename = data.get("filename", "resume.pdf")
             b64_content = data.get("base64", "")
             
@@ -975,7 +1002,7 @@ def main():
 
     # If piped via stdin
     if not sys.stdin.isatty():
-        input_data = sys.stdin.read().strip()
+        input_data = sys.stdin.read().strip().lstrip('\ufeff')
         if input_data:
             try:
                 data = json.loads(input_data)
