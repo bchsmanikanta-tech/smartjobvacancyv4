@@ -36,6 +36,47 @@ const server = http.createServer((req, res) => {
     let reqUrl = req.url.split('?')[0];
     if (reqUrl === '/') reqUrl = '/index.html';
 
+    // AI Resume Analysis API Endpoint
+    if (req.method === 'POST' && reqUrl.startsWith('/api/analyze-resume')) {
+        let bodyChunks = [];
+        req.on('data', chunk => bodyChunks.push(chunk));
+        req.on('end', () => {
+            const body = Buffer.concat(bodyChunks).toString('utf-8');
+            const { spawn } = require('child_process');
+            const child = spawn('python', [path.join(PUBLIC_DIR, 'backend', 'resume_analyzer.py')], { cwd: PUBLIC_DIR });
+            
+            let stdoutData = '';
+            let stderrData = '';
+            child.stdout.on('data', d => stdoutData += d);
+            child.stderr.on('data', d => stderrData += d);
+            
+            child.on('close', (code) => {
+                res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                if (stdoutData.trim()) {
+                    res.end(stdoutData);
+                } else {
+                    res.end(JSON.stringify({
+                        success: false,
+                        readable: false,
+                        error: stderrData || 'Execution error during resume analysis.'
+                    }));
+                }
+            });
+
+            child.on('error', (err) => {
+                res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(JSON.stringify({
+                    success: false,
+                    error: `Failed to launch Python analyzer: ${err.message}`
+                }));
+            });
+
+            child.stdin.write(body);
+            child.stdin.end();
+        });
+        return;
+    }
+
     const filePath = path.join(PUBLIC_DIR, reqUrl);
 
     // Prevent directory traversal

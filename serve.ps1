@@ -45,6 +45,80 @@ while ($listener.IsListening) {
         if ($rawUrl.Contains("?")) {
             $rawUrl = $rawUrl.Substring(0, $rawUrl.IndexOf("?"))
         }
+
+        # CORS Preflight
+        if ($request.HttpMethod -eq "OPTIONS") {
+            $response.StatusCode = 204
+            $response.AddHeader("Access-Control-Allow-Origin", "*")
+            $response.AddHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            $response.AddHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")
+            $response.OutputStream.Close()
+            continue
+        }
+
+        # AI Resume Analysis API Endpoint
+        if ($request.HttpMethod -eq "POST" -and $rawUrl -like "/api/analyze-resume*") {
+            $response.ContentType = "application/json; charset=utf-8"
+            $response.AddHeader("Access-Control-Allow-Origin", "*")
+            $response.AddHeader("Cache-Control", "no-cache, no-store, must-revalidate")
+
+            try {
+                $reader = New-Object System.IO.StreamReader($request.InputStream, [System.Text.Encoding]::UTF8)
+                $body = $reader.ReadToEnd()
+                $reader.Close()
+
+                $pythonScript = [System.IO.Path]::Combine($baseDir, "backend", "resume_analyzer.py")
+                $tempInputFile = [System.IO.Path]::GetTempFileName()
+                [System.IO.File]::WriteAllText($tempInputFile, $body, [System.Text.Encoding]::UTF8)
+
+                $psi = New-Object System.Diagnostics.ProcessStartInfo
+                $psi.FileName = "python"
+                $psi.Arguments = "`"$pythonScript`""
+                $psi.RedirectStandardInput = $true
+                $psi.RedirectStandardOutput = $true
+                $psi.RedirectStandardError = $true
+                $psi.UseShellExecute = $false
+                $psi.CreateNoWindow = $true
+
+                $proc = [System.Diagnostics.Process]::Start($psi)
+                $proc.StandardInput.Write($body)
+                $proc.StandardInput.Close()
+                $output = $proc.StandardOutput.ReadToEnd()
+                $errOutput = $proc.StandardError.ReadToEnd()
+                $proc.WaitForExit()
+
+                if ([System.IO.File]::Exists($tempInputFile)) {
+                    [System.IO.File]::Delete($tempInputFile)
+                }
+
+                if (-not [string]::IsNullOrWhiteSpace($output)) {
+                    $responseBytes = [System.Text.Encoding]::UTF8.GetBytes($output)
+                    $response.StatusCode = 200
+                } else {
+                    $errJson = @{
+                        success = $false
+                        readable = $false
+                        error = if ($errOutput) { $errOutput } else { "Failed to run Python analyzer." }
+                    } | ConvertTo-Json
+                    $responseBytes = [System.Text.Encoding]::UTF8.GetBytes($errJson)
+                    $response.StatusCode = 200
+                }
+            } catch {
+                $errJson = @{
+                    success = $false
+                    readable = $false
+                    error = $_.Exception.Message
+                } | ConvertTo-Json
+                $responseBytes = [System.Text.Encoding]::UTF8.GetBytes($errJson)
+                $response.StatusCode = 500
+            }
+
+            $response.ContentLength64 = $responseBytes.Length
+            $response.OutputStream.Write($responseBytes, 0, $responseBytes.Length)
+            $response.OutputStream.Close()
+            continue
+        }
+
         if ($rawUrl -eq "/" -or [string]::IsNullOrWhiteSpace($rawUrl)) {
             $rawUrl = "/index.html"
         }

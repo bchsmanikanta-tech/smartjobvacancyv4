@@ -11,7 +11,8 @@
         SAVED_JOBS: 'smarthire_saved_jobs',
         NOTIFICATIONS: 'smarthire_notifications',
         INTERVIEWS: 'smarthire_interviews',
-        OFFERS: 'smarthire_offers'
+        OFFERS: 'smarthire_offers',
+        FEEDBACK: 'smarthire_user_feedback'
     };
 
     // Helper: Convert string IDs into valid RFC-4122 UUID format required by PostgreSQL
@@ -89,6 +90,9 @@
             if (!localStorage.getItem(STORAGE_KEYS.OFFERS)) {
                 localStorage.setItem(STORAGE_KEYS.OFFERS, JSON.stringify([]));
             }
+            if (!localStorage.getItem(STORAGE_KEYS.FEEDBACK)) {
+                localStorage.setItem(STORAGE_KEYS.FEEDBACK, JSON.stringify([]));
+            }
         }
 
         clearAllData() {
@@ -97,6 +101,7 @@
             localStorage.setItem(STORAGE_KEYS.SAVED_JOBS, JSON.stringify([]));
             localStorage.setItem(STORAGE_KEYS.INTERVIEWS, JSON.stringify([]));
             localStorage.setItem(STORAGE_KEYS.OFFERS, JSON.stringify([]));
+            localStorage.setItem(STORAGE_KEYS.FEEDBACK, JSON.stringify([]));
             localStorage.setItem('smartjob_saved_jobs', JSON.stringify([]));
             localStorage.setItem('smartjob_users_db', JSON.stringify([]));
             localStorage.setItem('smarthire_chat_db', JSON.stringify({}));
@@ -729,6 +734,112 @@
             }
 
             return null;
+        }
+
+        // ==========================================
+        // 3B. AI RESUME ANALYSIS PERSISTENCE & HISTORY
+        // ==========================================
+        async saveResumeAnalysis(analysisData, userEmailOrId = '') {
+            const currentUser = window.auth?.getCurrentUser();
+            const userKey = (userEmailOrId || currentUser?.email || 'default').trim().toLowerCase();
+            
+            const record = {
+                ...analysisData,
+                id: 'analysis_' + Date.now(),
+                userKey: userKey,
+                savedAt: new Date().toISOString()
+            };
+
+            // 1. Save latest analysis scoped to user
+            try {
+                localStorage.setItem(`smarthire_resume_analysis_${userKey}`, JSON.stringify(record));
+                // Also update history list
+                const historyKey = `smarthire_resume_history_${userKey}`;
+                let history = [];
+                try {
+                    history = JSON.parse(localStorage.getItem(historyKey)) || [];
+                } catch (e) {}
+                history.unshift({
+                    id: record.id,
+                    filename: record.filename,
+                    savedAt: record.savedAt,
+                    atsScore: record.analysis?.ats_analysis?.total_score || 0,
+                    technicalSkillsCount: record.analysis?.skills_analysis?.technical_skills?.length || 0,
+                    spellingCount: record.analysis?.spelling_mistakes?.length || 0
+                });
+                // Keep last 10 entries
+                localStorage.setItem(historyKey, JSON.stringify(history.slice(0, 10)));
+            } catch (e) {
+                console.warn("Storage warning saving resume analysis:", e);
+            }
+
+            // 2. Sync ATS score to seeker profile
+            const atsScore = record.analysis?.ats_analysis?.total_score;
+            if (atsScore) {
+                try {
+                    await this.saveSeekerProfile({
+                        atsScore: atsScore,
+                        lastResumeAnalyzed: record.filename,
+                        lastResumeAnalysisDate: record.savedAt
+                    }, userKey);
+                } catch (e) {
+                    console.warn("Profile sync error on resume analysis:", e);
+                }
+            }
+
+            return record;
+        }
+
+        getLatestResumeAnalysis(userEmailOrId = '') {
+            const currentUser = window.auth?.getCurrentUser();
+            const userKey = (userEmailOrId || currentUser?.email || 'default').trim().toLowerCase();
+            try {
+                const stored = localStorage.getItem(`smarthire_resume_analysis_${userKey}`);
+                return stored ? JSON.parse(stored) : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        getResumeAnalysisHistory(userEmailOrId = '') {
+            const currentUser = window.auth?.getCurrentUser();
+            const userKey = (userEmailOrId || currentUser?.email || 'default').trim().toLowerCase();
+            try {
+                const stored = localStorage.getItem(`smarthire_resume_history_${userKey}`);
+                return stored ? JSON.parse(stored) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        async applyResumeSkillSuggestions(newSkillsList = [], userEmailOrId = '') {
+            const currentUser = window.auth?.getCurrentUser();
+            const userKey = (userEmailOrId || currentUser?.email || 'default').trim().toLowerCase();
+            const profile = this.getSeekerProfile(userKey) || {};
+
+            let currentSkills = [];
+            if (Array.isArray(profile.skills)) {
+                currentSkills = [...profile.skills];
+            } else if (typeof profile.skills === 'string' && profile.skills.trim()) {
+                currentSkills = profile.skills.split(',').map(s => s.trim()).filter(Boolean);
+            }
+
+            const currentLower = new Set(currentSkills.map(s => s.toLowerCase()));
+            const added = [];
+
+            for (const skill of newSkillsList) {
+                if (skill && !currentLower.has(skill.toLowerCase())) {
+                    currentSkills.push(skill);
+                    currentLower.add(skill.toLowerCase());
+                    added.push(skill);
+                }
+            }
+
+            const updatedProfile = await this.saveSeekerProfile({
+                skills: currentSkills
+            }, userKey);
+
+            return { updatedProfile, addedSkills: added, totalSkills: currentSkills };
         }
 
         // ==========================================
@@ -1544,7 +1655,160 @@
         }
 
         // ==========================================
-        // 7. UNIFIED ALL-TABLE CLOUD SYNC
+        // 7. REAL USER FEEDBACK & REVIEWS
+        // ==========================================
+        getFeedback() {
+            try {
+                return JSON.parse(localStorage.getItem(STORAGE_KEYS.FEEDBACK)) || [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        async saveFeedback(feedbackData) {
+            const rawId = feedbackData.id || generateUUID();
+            const fbId = toUUID(rawId);
+            const currentAuth = window.auth?.getCurrentUser();
+            
+            const newFeedback = {
+                id: fbId,
+                userId: feedbackData.userId || currentAuth?.id || 'anonymous',
+                userName: feedbackData.userName || feedbackData.name || currentAuth?.fullName || 'Verified User',
+                userEmail: (feedbackData.userEmail || feedbackData.email || currentAuth?.email || '').trim().toLowerCase(),
+                userRole: feedbackData.userRole || feedbackData.role || currentAuth?.role || 'Job Seeker',
+                rating: Math.max(1, Math.min(5, Number(feedbackData.rating || 5))),
+                comment: (feedbackData.comment || feedbackData.feedback || '').trim(),
+                createdAt: feedbackData.createdAt || new Date().toISOString()
+            };
+
+            const allFb = this.getFeedback();
+            allFb.unshift(newFeedback);
+            localStorage.setItem(STORAGE_KEYS.FEEDBACK, JSON.stringify(allFb));
+
+            const client = this.getSupabase();
+            if (client) {
+                try {
+                    await client.from('user_feedback').insert([{
+                        id: fbId,
+                        user_id: newFeedback.userId !== 'anonymous' ? toUUID(newFeedback.userId) : null,
+                        user_name: newFeedback.userName,
+                        user_email: newFeedback.userEmail,
+                        user_role: newFeedback.userRole,
+                        rating: newFeedback.rating,
+                        comment: newFeedback.comment,
+                        created_at: newFeedback.createdAt
+                    }]);
+                } catch (e) {
+                    console.warn("Supabase user_feedback insert notice (saved locally):", e);
+                }
+            }
+
+            return newFeedback;
+        }
+
+        async fetchFeedbackFromSupabase() {
+            const client = this.getSupabase();
+            if (!client) return this.getFeedback();
+            try {
+                const { data, error } = await client.from('user_feedback').select('*').order('created_at', { ascending: false });
+                if (error || !data) {
+                    return this.getFeedback();
+                }
+                const cloudFb = data.map(f => ({
+                    id: f.id,
+                    userId: f.user_id,
+                    userName: f.user_name || 'Verified User',
+                    userEmail: f.user_email || '',
+                    userRole: f.user_role || 'Job Seeker',
+                    rating: Number(f.rating || 5),
+                    comment: f.comment || '',
+                    createdAt: f.created_at
+                }));
+                const localFb = this.getFeedback();
+                const mergedMap = new Map();
+                cloudFb.forEach(f => mergedMap.set(String(f.id), f));
+                localFb.forEach(f => {
+                    const key = String(f.id);
+                    if (!mergedMap.has(key)) mergedMap.set(key, f);
+                });
+                const mergedList = Array.from(mergedMap.values());
+                localStorage.setItem(STORAGE_KEYS.FEEDBACK, JSON.stringify(mergedList));
+                return mergedList;
+            } catch (e) {
+                return this.getFeedback();
+            }
+        }
+
+        // ==========================================
+        // 8. REAL-TIME PLATFORM STATISTICS AGGREGATOR
+        // ==========================================
+        async getPlatformStatistics() {
+            const activeJobs = (this.getActiveJobs() || []).length;
+            const applications = (this.getApplications() || []).length;
+
+            let jobSeekers = 0;
+            let companies = 0;
+
+            if (window.auth && typeof window.auth.getAllUsers === 'function') {
+                try {
+                    const allUsers = await window.auth.getAllUsers();
+                    if (Array.isArray(allUsers)) {
+                        jobSeekers = allUsers.filter(u => {
+                            const r = (u.role || '').toLowerCase();
+                            return r === 'seeker' || r === 'candidate' || (r !== 'company' && r !== 'employer' && r !== 'admin');
+                        }).length;
+                    }
+                } catch (e) {
+                    jobSeekers = 0;
+                }
+            }
+
+            if (window.auth && typeof window.auth.getAllCompanies === 'function') {
+                try {
+                    const allComps = await window.auth.getAllCompanies();
+                    if (Array.isArray(allComps)) {
+                        companies = allComps.length;
+                    }
+                } catch (e) {
+                    companies = 0;
+                }
+            }
+
+            return {
+                activeJobs,
+                jobSeekers,
+                companies,
+                applications
+            };
+        }
+
+        // ==========================================
+        // 9. REAL SEEKER AI JOB MATCH CALCULATOR
+        // ==========================================
+        calculateJobMatch(job, userProfile) {
+            if (!userProfile) return null;
+            const rawSkills = userProfile.skills || '';
+            const skillsArr = Array.isArray(rawSkills) ? rawSkills : String(rawSkills).split(/[\s,]+/);
+            const userTokens = skillsArr.map(s => s.trim().toLowerCase()).filter(s => s.length > 1);
+            if (userTokens.length === 0) return null;
+
+            const jobSkills = Array.isArray(job.skills) ? job.skills.join(' ') : String(job.skills || '');
+            const jobText = `${job.title || ''} ${jobSkills} ${job.description || ''} ${job.category || ''}`.toLowerCase();
+
+            let matchedCount = 0;
+            userTokens.forEach(token => {
+                if (jobText.includes(token)) matchedCount++;
+            });
+
+            if (matchedCount === 0) return null;
+
+            const baseScore = Math.round((matchedCount / Math.max(userTokens.length, 1)) * 60);
+            const score = Math.min(99, Math.max(50, 40 + baseScore));
+            return score;
+        }
+
+        // ==========================================
+        // 10. UNIFIED ALL-TABLE CLOUD SYNC
         // ==========================================
         async syncAllFromSupabase() {
             try {
@@ -1553,6 +1817,7 @@
                     this.fetchApplicationsFromSupabase(),
                     this.fetchInterviewsFromSupabase(),
                     this.fetchOffersFromSupabase(),
+                    this.fetchFeedbackFromSupabase(),
                     window.auth?.syncUsersFromSupabase?.()
                 ]);
                 console.log("🔄 Dual-Engine Database fully synced with Supabase PostgreSQL cloud!");

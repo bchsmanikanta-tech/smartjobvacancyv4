@@ -608,16 +608,19 @@
     <script src="js/auth.js"></script>
     <script src="js/db.js"></script>
     <script>
-        let currentSeekerName = 'BVCITS';
-        let currentSeekerEmail = 'seeker@smartjob.com';
         let allLiveJobs = [];
+        let currentSeekerEmail = 'candidate@demo.com';
+        let currentSeekerName = 'Candidate';
 
         function getQueryParams() {
             const params = new URLSearchParams(window.location.search);
             return {
                 email: params.get('session_email'),
                 name: params.get('session_name'),
-                role: params.get('session_role')
+                role: params.get('session_role'),
+                keyword: params.get('q') || params.get('keyword'),
+                location: params.get('location'),
+                category: params.get('category')
             };
         }
 
@@ -637,21 +640,40 @@
                 dashLink.href = `seeker-dashboard.html?session_email=${encodeURIComponent(currentSeekerEmail)}&session_name=${encodeURIComponent(currentSeekerName)}&session_role=seeker`;
             }
 
+            // Pre-fill filter inputs if parameters provided
+            const initialKeyword = q.keyword || q.category;
+            if (initialKeyword && document.getElementById('filter-keyword')) {
+                document.getElementById('filter-keyword').value = decodeURIComponent(initialKeyword);
+            }
+            if (q.location && document.getElementById('filter-location')) {
+                document.getElementById('filter-location').value = decodeURIComponent(q.location);
+            }
+
             // Load Jobs & Sync from Supabase
             if (window.db) {
                 allLiveJobs = window.db.getJobs() || [];
-                renderVacanciesList(allLiveJobs);
+                if (initialKeyword || q.location) {
+                    handleFilterSearch();
+                } else {
+                    renderVacanciesList(allLiveJobs);
+                }
 
                 window.db.fetchJobsFromSupabase().then(jobs => {
                     if (jobs && jobs.length > 0) {
                         allLiveJobs = jobs;
-                        renderVacanciesList(allLiveJobs);
+                        if (initialKeyword || q.location) {
+                            handleFilterSearch();
+                        } else {
+                            renderVacanciesList(allLiveJobs);
+                        }
                     }
                 });
 
                 if (typeof window.db.syncSavedJobsFromSupabase === 'function') {
                     window.db.syncSavedJobsFromSupabase(currentSeekerEmail).then(() => {
-                        renderVacanciesList(allLiveJobs);
+                        if (!initialKeyword && !q.location) {
+                            renderVacanciesList(allLiveJobs);
+                        }
                     });
                 }
             }

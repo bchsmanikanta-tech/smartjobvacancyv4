@@ -979,6 +979,9 @@
             <button class="sidebar-btn" id="sbtn-history" onclick="switchSeekerTab('tab-history')">
                 <i class="fa-regular fa-file-lines"></i> Application History
             </button>
+            <button class="sidebar-btn" id="sbtn-resume-analysis" onclick="switchSeekerTab('tab-resume-analysis')">
+                <i class="fa-solid fa-file-waveform" style="color: #c084fc;"></i> AI Resume Analysis <span style="font-size: 0.65rem; background: #a855f7; color: #fff; padding: 1px 6px; border-radius: 8px; margin-left: auto; font-weight: 800;">NEW</span>
+            </button>
             <button class="sidebar-btn" id="sbtn-ats" onclick="switchSeekerTab('tab-ats')">
                 <i class="fa-solid fa-bullseye"></i> ATS Resume Match
             </button>
@@ -1027,6 +1030,9 @@
                             </button>
                             <button class="hero-pill-btn outline" onclick="switchSeekerTab('tab-chat')">
                                 <i class="fa-regular fa-comment-dots"></i> Recruiter Chat
+                            </button>
+                            <button class="hero-pill-btn outline" onclick="switchSeekerTab('tab-resume-analysis')">
+                                <i class="fa-solid fa-file-waveform" style="color: #c084fc;"></i> AI Resume Analysis
                             </button>
                             <button class="hero-pill-btn outline" onclick="switchSeekerTab('tab-ats')">
                                 <i class="fa-solid fa-bullseye"></i> Check Resume ATS
@@ -1121,6 +1127,23 @@
                     </div>
 
                     <div class="suite-grid">
+                        <!-- Tool: AI Resume Analysis -->
+                        <div class="suite-card" style="border: 1px solid rgba(168,85,247,0.35); background: linear-gradient(145deg, rgba(168,85,247,0.06), rgba(59,130,246,0.04));">
+                            <div class="suite-card-top">
+                                <div class="suite-icon" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">
+                                    <i class="fa-solid fa-file-waveform"></i>
+                                </div>
+                                <div>
+                                    <strong style="font-size: 0.92rem;">AI Resume Analysis</strong>
+                                    <div><span class="suite-tag" style="background: rgba(168, 85, 247, 0.18); color: #c084fc;">Upload &bull; PDF/DOC/DOCX</span></div>
+                                </div>
+                            </div>
+                            <p class="suite-desc">Upload resume for instant diagnostic: spelling, grammar, tone improvement, missing sections, and ATS score.</p>
+                            <button class="btn-suite-action" style="border: 1px solid #a855f7; color: #a855f7;" onclick="switchSeekerTab('tab-resume-analysis')">
+                                Analyze Resume &rarr;
+                            </button>
+                        </div>
+
                         <!-- Tool 1: ATS Analyzer -->
                         <div class="suite-card">
                             <div class="suite-card-top">
@@ -1564,6 +1587,262 @@
                                 <div id="ats-missing-tags" style="display: flex; flex-wrap: wrap; gap: 6px;">
                                     <!-- Populated dynamically -->
                                 </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- =========================================================
+                 TAB: AI RESUME ANALYSIS
+                 ========================================================= -->
+            <div id="tab-resume-analysis" class="tab-pane">
+                <div style="max-width: 1000px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
+                    
+                    <!-- Header Banner -->
+                    <div class="white-card" style="padding: 26px 30px; border-radius: 16px; background: linear-gradient(135deg, rgba(168,85,247,0.08) 0%, rgba(59,130,246,0.08) 100%); border: 1px solid rgba(168,85,247,0.25);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                            <div>
+                                <div style="display: inline-flex; align-items: center; gap: 6px; background: #a855f7; color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 0.74rem; font-weight: 800; margin-bottom: 8px;">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> AI Powered Diagnostic Engine
+                                </div>
+                                <h2 style="font-size: 1.55rem; font-weight: 900; color: var(--text-main); margin-bottom: 4px;">
+                                    AI Resume Analysis
+                                </h2>
+                                <p style="font-size: 0.88rem; color: var(--text-muted); max-width: 680px;">
+                                    Upload your resume and get an instant professional analysis. Detect spelling errors, improve weak sentences, uncover missing sections, and measure your ATS score.
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <a href="resume-analysis.html" target="_blank" class="btn-nav-action" style="background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.35); color: #c084fc; text-decoration: none; font-weight: 800;">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Standalone Full Page View
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upload Box -->
+                    <div class="white-card" style="padding: 26px; border-radius: 16px; border: 1px solid var(--border-card);">
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                            <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-cloud-arrow-up" style="color: #a855f7;"></i> Upload Resume Document
+                            </h3>
+                            <span style="font-size: 0.78rem; color: var(--text-dim);">Accepts PDF, DOC, DOCX (Max 10MB)</span>
+                        </div>
+
+                        <!-- Drag and drop container -->
+                        <div id="tab-ra-dropzone" style="border: 2px dashed rgba(168,85,247,0.4); background: rgba(168,85,247,0.03); border-radius: 12px; padding: 36px 20px; text-align: center; cursor: pointer; transition: var(--transition);" onclick="document.getElementById('tab-ra-file-input').click()">
+                            <input type="file" id="tab-ra-file-input" accept=".pdf,.doc,.docx" style="display: none;" onchange="handleTabRaFile(this.files[0])">
+                            <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(168,85,247,0.15); color: #c084fc; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; margin: 0 auto 12px auto;">
+                                <i class="fa-solid fa-file-arrow-up"></i>
+                            </div>
+                            <div style="font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">Drag &amp; Drop your resume here</div>
+                            <div style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 16px;">or browse from your computer</div>
+                            
+                            <div style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px;">
+                                <span style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-card); padding: 3px 10px; border-radius: 20px; font-size: 0.74rem; font-weight: 700; color: var(--text-muted);"><i class="fa-solid fa-file-pdf" style="color: #ef4444;"></i> PDF</span>
+                                <span style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-card); padding: 3px 10px; border-radius: 20px; font-size: 0.74rem; font-weight: 700; color: var(--text-muted);"><i class="fa-solid fa-file-word" style="color: #3b82f6;"></i> Word (DOCX)</span>
+                                <span style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-card); padding: 3px 10px; border-radius: 20px; font-size: 0.74rem; font-weight: 700; color: var(--text-muted);"><i class="fa-solid fa-file-lines" style="color: #a855f7;"></i> Legacy DOC</span>
+                            </div>
+
+                            <button type="button" class="btn-nav-action" style="background: #2563eb; color: #fff;" onclick="event.stopPropagation(); document.getElementById('tab-ra-file-input').click()">
+                                <i class="fa-regular fa-folder-open"></i> Browse File
+                            </button>
+                        </div>
+
+                        <!-- Alert Box -->
+                        <div id="tab-ra-alert" style="display: none; padding: 12px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; margin-top: 14px;"></div>
+
+                        <!-- File Info Strip -->
+                        <div id="tab-ra-file-card" style="display: none; margin-top: 16px; background: var(--bg-body); border: 1px solid var(--border-card); border-radius: 10px; padding: 14px 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div id="tab-ra-file-badge" style="width: 40px; height: 40px; border-radius: 8px; background: rgba(59,130,246,0.15); color: #60a5fa; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.85rem;">PDF</div>
+                                <div>
+                                    <div id="tab-ra-filename" style="font-weight: 800; font-size: 0.92rem; color: var(--text-main);">resume.pdf</div>
+                                    <div id="tab-ra-filesize" style="font-size: 0.76rem; color: var(--text-dim);">0 KB</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" class="btn-nav-action" style="background: transparent; border: 1px solid var(--border-card); color: var(--text-muted);" onclick="document.getElementById('tab-ra-file-input').click()">
+                                    Change File
+                                </button>
+                                <button type="button" id="tab-ra-btn-run" class="btn-nav-action" style="background: linear-gradient(135deg, #a855f7, #3b82f6); color: #fff;" onclick="runTabResumeAnalysis()">
+                                    <i class="fa-solid fa-bolt"></i> Analyze Resume
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Loading State -->
+                        <div id="tab-ra-loader" style="display: none; text-align: center; padding: 30px 10px;">
+                            <div style="width: 44px; height: 44px; border: 3px solid rgba(168,85,247,0.2); border-top: 3px solid #a855f7; border-radius: 50%; animation: tabSpin 0.8s linear infinite; margin: 0 auto 12px auto;"></div>
+                            <div style="font-size: 1.05rem; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">Running AI Resume Analysis...</div>
+                            <div id="tab-ra-loader-step" style="font-size: 0.82rem; color: var(--text-muted);">Extracting sections and auditing spelling, grammar &amp; ATS keywords...</div>
+                        </div>
+
+                    </div>
+
+                    <!-- Results Dashboard Container -->
+                    <div id="tab-ra-results" style="display: none; display: flex; flex-direction: column; gap: 20px;">
+                        
+                        <!-- Top Score Card -->
+                        <div class="white-card" style="padding: 24px; border-radius: 16px; border: 1px solid var(--border-card); display: grid; grid-template-columns: 200px 1fr; gap: 24px; align-items: center;">
+                            
+                            <div style="text-align: center; border-right: 1px solid var(--border-card); padding-right: 16px;">
+                                <div style="width: 105px; height: 105px; border-radius: 50%; border: 5px solid #a855f7; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto 10px auto; background: rgba(168,85,247,0.06);">
+                                    <span id="tab-ra-score" style="font-size: 2.1rem; font-weight: 900; color: #a855f7; line-height: 1;">87</span>
+                                    <span style="font-size: 0.65rem; font-weight: 800; color: var(--text-dim); text-transform: uppercase;">ATS Score</span>
+                                </div>
+                                <div id="tab-ra-tag" style="font-size: 0.78rem; font-weight: 800; color: #10b981; background: rgba(16,185,129,0.1); padding: 3px 10px; border-radius: 20px; display: inline-block;">
+                                    🟢 Highly ATS-Ready
+                                </div>
+                            </div>
+
+                            <div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                                    <div>
+                                        <h3 style="font-size: 1.25rem; font-weight: 900; color: var(--text-main);">ATS Readiness &amp; Quality Breakdown</h3>
+                                        <div id="tab-ra-meta" style="font-size: 0.8rem; color: var(--text-muted);">Candidate: John Doe</div>
+                                    </div>
+                                    <button class="btn-nav-action" onclick="saveTabAnalysisToProfile()" style="background: rgba(168,85,247,0.12); color: #a855f7; border: 1px solid rgba(168,85,247,0.25);">
+                                        <i class="fa-solid fa-floppy-disk"></i> Save to Profile
+                                    </button>
+                                </div>
+
+                                <!-- 5 Pillars -->
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">
+                                    <div style="background: var(--bg-body); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-card);">
+                                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 800; margin-bottom: 4px;">
+                                            <span>Keywords</span>
+                                            <span style="color: #3b82f6;" id="tab-ra-p-kw">18/20</span>
+                                        </div>
+                                        <div style="width: 100%; height: 5px; background: var(--border-card); border-radius: 3px; overflow: hidden;">
+                                            <div id="tab-ra-p-kw-bar" style="width: 90%; height: 100%; background: #3b82f6;"></div>
+                                        </div>
+                                    </div>
+
+                                    <div style="background: var(--bg-body); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-card);">
+                                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 800; margin-bottom: 4px;">
+                                            <span>Skills</span>
+                                            <span style="color: #a855f7;" id="tab-ra-p-sk">17/20</span>
+                                        </div>
+                                        <div style="width: 100%; height: 5px; background: var(--border-card); border-radius: 3px; overflow: hidden;">
+                                            <div id="tab-ra-p-sk-bar" style="width: 85%; height: 100%; background: #a855f7;"></div>
+                                        </div>
+                                    </div>
+
+                                    <div style="background: var(--bg-body); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-card);">
+                                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 800; margin-bottom: 4px;">
+                                            <span>Structure</span>
+                                            <span style="color: #10b981;" id="tab-ra-p-st">18/20</span>
+                                        </div>
+                                        <div style="width: 100%; height: 5px; background: var(--border-card); border-radius: 3px; overflow: hidden;">
+                                            <div id="tab-ra-p-st-bar" style="width: 90%; height: 100%; background: #10b981;"></div>
+                                        </div>
+                                    </div>
+
+                                    <div style="background: var(--bg-body); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-card);">
+                                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 800; margin-bottom: 4px;">
+                                            <span>Readability</span>
+                                            <span style="color: #f59e0b;" id="tab-ra-p-rd">17/20</span>
+                                        </div>
+                                        <div style="width: 100%; height: 5px; background: var(--border-card); border-radius: 3px; overflow: hidden;">
+                                            <div id="tab-ra-p-rd-bar" style="width: 85%; height: 100%; background: #f59e0b;"></div>
+                                        </div>
+                                    </div>
+
+                                    <div style="background: var(--bg-body); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-card);">
+                                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 800; margin-bottom: 4px;">
+                                            <span>Completeness</span>
+                                            <span style="color: #06b6d4;" id="tab-ra-p-cp">17/20</span>
+                                        </div>
+                                        <div style="width: 100%; height: 5px; background: var(--border-card); border-radius: 3px; overflow: hidden;">
+                                            <div id="tab-ra-p-cp-bar" style="width: 85%; height: 100%; background: #06b6d4;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style="font-size: 0.72rem; color: var(--text-dim); margin-top: 8px;">
+                                    * Estimated benchmark score. Does not guarantee passing an actual company's ATS.
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Diagnostic Sections Accordion/Panes -->
+                        <div class="white-card" style="padding: 22px; border-radius: 16px; border: 1px solid var(--border-card);">
+                            
+                            <!-- Internal nav pills -->
+                            <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; border-bottom: 1px solid var(--border-card); margin-bottom: 16px;">
+                                <button class="btn-nav-action tab-ra-sub-btn active" onclick="switchTabRaSub('tab-ra-sub-spelling', this)" style="background: #2563eb; color: #fff; font-size: 0.8rem; padding: 6px 14px;">
+                                    Spelling Mistakes (<span id="tab-ra-cnt-sp">0</span>)
+                                </button>
+                                <button class="btn-nav-action tab-ra-sub-btn" onclick="switchTabRaSub('tab-ra-sub-grammar', this)" style="background: transparent; color: var(--text-muted); font-size: 0.8rem; padding: 6px 14px;">
+                                    Grammar Mistakes (<span id="tab-ra-cnt-gr">0</span>)
+                                </button>
+                                <button class="btn-nav-action tab-ra-sub-btn" onclick="switchTabRaSub('tab-ra-sub-tone', this)" style="background: transparent; color: var(--text-muted); font-size: 0.8rem; padding: 6px 14px;">
+                                    Professional Language (<span id="tab-ra-cnt-tn">0</span>)
+                                </button>
+                                <button class="btn-nav-action tab-ra-sub-btn" onclick="switchTabRaSub('tab-ra-sub-missing', this)" style="background: transparent; color: var(--text-muted); font-size: 0.8rem; padding: 6px 14px;">
+                                    Missing Sections (<span id="tab-ra-cnt-ms">0</span>)
+                                </button>
+                                <button class="btn-nav-action tab-ra-sub-btn" onclick="switchTabRaSub('tab-ra-sub-skills', this)" style="background: transparent; color: var(--text-muted); font-size: 0.8rem; padding: 6px 14px;">
+                                    Skills Analysis (<span id="tab-ra-cnt-sk">0</span>)
+                                </button>
+                                <button class="btn-nav-action tab-ra-sub-btn" onclick="switchTabRaSub('tab-ra-sub-keywords', this)" style="background: transparent; color: var(--text-muted); font-size: 0.8rem; padding: 6px 14px;">
+                                    Suggested Keywords (<span id="tab-ra-cnt-kw">0</span>)
+                                </button>
+                                <button class="btn-nav-action tab-ra-sub-btn" onclick="switchTabRaSub('tab-ra-sub-strengths', this)" style="background: transparent; color: var(--text-muted); font-size: 0.8rem; padding: 6px 14px;">
+                                    Resume Strengths (<span id="tab-ra-cnt-st">0</span>)
+                                </button>
+                            </div>
+
+                            <!-- Subpane: Spelling -->
+                            <div class="tab-ra-subpane" id="tab-ra-sub-spelling" style="display: flex; flex-direction: column; gap: 10px;">
+                                <div id="tab-ra-list-spelling"></div>
+                            </div>
+
+                            <!-- Subpane: Grammar -->
+                            <div class="tab-ra-subpane" id="tab-ra-sub-grammar" style="display: none; flex-direction: column; gap: 10px;">
+                                <div id="tab-ra-list-grammar"></div>
+                            </div>
+
+                            <!-- Subpane: Tone -->
+                            <div class="tab-ra-subpane" id="tab-ra-sub-tone" style="display: none; flex-direction: column; gap: 10px;">
+                                <div id="tab-ra-list-tone"></div>
+                            </div>
+
+                            <!-- Subpane: Missing -->
+                            <div class="tab-ra-subpane" id="tab-ra-sub-missing" style="display: none; flex-direction: column; gap: 10px;">
+                                <div id="tab-ra-list-missing"></div>
+                            </div>
+
+                            <!-- Subpane: Skills -->
+                            <div class="tab-ra-subpane" id="tab-ra-sub-skills" style="display: none; flex-direction: column; gap: 14px;">
+                                <div>
+                                    <div style="font-size: 0.84rem; font-weight: 800; color: #3b82f6; margin-bottom: 6px;">Technical Skills</div>
+                                    <div id="tab-ra-list-tech" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.84rem; font-weight: 800; color: #a855f7; margin-bottom: 6px;">Soft Skills</div>
+                                    <div id="tab-ra-list-soft" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Subpane: Keywords -->
+                            <div class="tab-ra-subpane" id="tab-ra-sub-keywords" style="display: none; flex-direction: column; gap: 12px;">
+                                <div style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); color: #fde68a; padding: 10px 14px; border-radius: 8px; font-size: 0.8rem;">
+                                    <strong>Suggested Keywords:</strong> Only add these keywords if you actually have the skill or experience.
+                                </div>
+                                <div id="tab-ra-list-kw" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+                            </div>
+
+                            <!-- Subpane: Strengths -->
+                            <div class="tab-ra-subpane" id="tab-ra-sub-strengths" style="display: none; flex-direction: column; gap: 8px;">
+                                <div id="tab-ra-list-strengths"></div>
                             </div>
 
                         </div>
@@ -3022,7 +3301,8 @@
             return {
                 email: params.get('session_email'),
                 name: params.get('session_name'),
-                role: params.get('session_role')
+                role: params.get('session_role'),
+                tab: params.get('tab')
             };
         }
 
@@ -3048,6 +3328,7 @@
                 'tab-saved': 'sbtn-saved',
                 'tab-history': 'sbtn-history',
                 'tab-ats': 'sbtn-ats',
+                'tab-resume-analysis': 'sbtn-resume-analysis',
                 'tab-profile': 'sbtn-profile',
                 'tab-advisor': 'sbtn-advisor',
                 'tab-resume': 'sbtn-resume',
@@ -3067,6 +3348,9 @@
             if (tabId === 'tab-ats') {
                 populateAtsVacanciesDropdown();
                 if (!document.getElementById('ats-resume-input')?.value) syncAtsWithProfileSkills();
+            }
+            if (tabId === 'tab-resume-analysis') {
+                initTabResumeAnalysis();
             }
             if (tabId === 'tab-interview') {
                 initMockInterviewTab();
@@ -3205,6 +3489,10 @@
                 window.db.syncSavedJobsFromSupabase(currentSeekerEmail).then(() => {
                     updateSavedJobsCount();
                 });
+            }
+
+            if (q.tab) {
+                switchSeekerTab(q.tab);
             }
         }
 
@@ -4585,6 +4873,392 @@
             updateResumeLivePreview();
             runAtsCalculation();
             showToast(`Added [${toAdd}] to your profile & AI resume!`, 'success');
+        }
+
+        // ==========================================
+        // AI RESUME ANALYSIS LOGIC & INTEGRATION
+        // ==========================================
+        let tabRaSelectedFile = null;
+        let tabRaSelectedBase64 = null;
+        let currentTabRaAnalysis = null;
+
+        function initTabResumeAnalysis() {
+            const dropzone = document.getElementById('tab-ra-dropzone');
+            if (dropzone && !dropzone._dragInit) {
+                dropzone._dragInit = true;
+                ['dragenter', 'dragover'].forEach(name => {
+                    dropzone.addEventListener(name, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropzone.style.borderColor = '#a855f7';
+                        dropzone.style.background = 'rgba(168, 85, 247, 0.08)';
+                    });
+                });
+                ['dragleave', 'drop'].forEach(name => {
+                    dropzone.addEventListener(name, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropzone.style.borderColor = 'rgba(168, 85, 247, 0.4)';
+                        dropzone.style.background = 'rgba(168, 85, 247, 0.03)';
+                    });
+                });
+                dropzone.addEventListener('drop', (e) => {
+                    const files = e.dataTransfer.files;
+                    if (files && files.length > 0) {
+                        handleTabRaFile(files[0]);
+                    }
+                });
+            }
+
+            // Check previous analysis
+            if (window.db) {
+                const prev = window.db.getLatestResumeAnalysis();
+                if (prev && prev.analysis && !currentTabRaAnalysis) {
+                    currentTabRaAnalysis = prev;
+                    renderTabRaResults(prev);
+                }
+            }
+        }
+
+        function showTabRaAlert(msg, isError = true) {
+            const el = document.getElementById('tab-ra-alert');
+            if (!el) return;
+            el.style.display = 'block';
+            el.style.background = isError ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)';
+            el.style.border = isError ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid rgba(34, 197, 94, 0.35)';
+            el.style.color = isError ? '#fca5a5' : '#86efac';
+            el.innerHTML = `<i class="fa-solid ${isError ? 'fa-circle-xmark' : 'fa-circle-check'}"></i> ${msg}`;
+        }
+
+        function clearTabRaAlert() {
+            const el = document.getElementById('tab-ra-alert');
+            if (el) el.style.display = 'none';
+        }
+
+        function handleTabRaFile(file) {
+            if (!file) return;
+            clearTabRaAlert();
+
+            const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+            const allowed = ['.pdf', '.doc', '.docx'];
+
+            if (!allowed.includes(ext)) {
+                showTabRaAlert(`Unsupported file type (${ext || 'unknown'}). Please upload a PDF (.pdf) or Word document (.doc, .docx).`, true);
+                tabRaSelectedFile = null;
+                document.getElementById('tab-ra-file-card').style.display = 'none';
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                showTabRaAlert(`File size exceeds 10MB limit (${(file.size / (1024*1024)).toFixed(2)} MB). Please upload a smaller file.`, true);
+                tabRaSelectedFile = null;
+                document.getElementById('tab-ra-file-card').style.display = 'none';
+                return;
+            }
+
+            tabRaSelectedFile = file;
+            const sizeKb = (file.size / 1024).toFixed(1);
+            const sizeDisplay = file.size > 1024 * 1024 ? (file.size / (1024*1024)).toFixed(2) + ' MB' : sizeKb + ' KB';
+
+            document.getElementById('tab-ra-filename').textContent = file.name;
+            document.getElementById('tab-ra-filesize').textContent = sizeDisplay;
+
+            const badge = document.getElementById('tab-ra-file-badge');
+            badge.textContent = ext.replace('.', '').toUpperCase();
+            if (ext === '.pdf') {
+                badge.style.color = '#ef4444';
+                badge.style.background = 'rgba(239, 68, 68, 0.15)';
+            } else {
+                badge.style.color = '#3b82f6';
+                badge.style.background = 'rgba(59, 130, 246, 0.15)';
+            }
+
+            document.getElementById('tab-ra-file-card').style.display = 'flex';
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                tabRaSelectedBase64 = e.target.result.split(',')[1];
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function runTabResumeAnalysis() {
+            if (!tabRaSelectedFile) {
+                showTabRaAlert('Please select or drop a valid resume file first.', true);
+                return;
+            }
+
+            const btnRun = document.getElementById('tab-ra-btn-run');
+            const loader = document.getElementById('tab-ra-loader');
+            const fileCard = document.getElementById('tab-ra-file-card');
+            const resultsBox = document.getElementById('tab-ra-results');
+
+            btnRun.disabled = true;
+            fileCard.style.display = 'none';
+            loader.style.display = 'block';
+            resultsBox.style.display = 'none';
+            clearTabRaAlert();
+
+            const stepText = document.getElementById('tab-ra-loader-step');
+            const steps = [
+                'Reading document stream via Python extraction engine...',
+                'Parsing Contact, Objective, Education, Skills, and Experience...',
+                'Checking for spelling and phrasing errors...',
+                'Suggesting stronger action-verb replacements...',
+                'Auditing 5-pillar ATS scoring algorithm...'
+            ];
+            let sIdx = 0;
+            const t = setInterval(() => {
+                sIdx = (sIdx + 1) % steps.length;
+                if (stepText) stepText.textContent = steps[sIdx];
+            }, 800);
+
+            try {
+                const payload = {
+                    filename: tabRaSelectedFile.name,
+                    base64: tabRaSelectedBase64
+                };
+
+                let response = null;
+                try {
+                    response = await fetch('/api/analyze-resume', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } catch (e) {
+                    console.log('Local origin API not reachable, trying microservice port 5005...', e);
+                }
+
+                if (!response || !response.ok) {
+                    try {
+                        response = await fetch('http://localhost:5005/api/analyze-resume', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                    } catch (e) {
+                        console.log('Microservice port 5005 not reachable:', e);
+                    }
+                }
+
+                if (!response) {
+                    throw new Error("Cannot connect to Python analysis backend. Please make sure the local server is running.");
+                }
+
+                const data = await response.json();
+                if (data.success === false) {
+                    throw new Error(data.error || "Failed to parse resume document.");
+                }
+
+                clearInterval(t);
+                loader.style.display = 'none';
+                fileCard.style.display = 'flex';
+                btnRun.disabled = false;
+
+                currentTabRaAnalysis = data;
+                renderTabRaResults(data);
+
+                // Save to db
+                if (window.db) {
+                    window.db.saveResumeAnalysis(data).catch(e => console.warn(e));
+                }
+
+                if (typeof showToast === 'function') {
+                    showToast('AI Resume Analysis completed successfully!', 'success');
+                }
+
+            } catch (err) {
+                clearInterval(t);
+                loader.style.display = 'none';
+                fileCard.style.display = 'flex';
+                btnRun.disabled = false;
+                showTabRaAlert(`Analysis Error: ${err.message}`, true);
+            }
+        }
+
+        function renderTabRaResults(data) {
+            const an = data.analysis || {};
+            const ats = an.ats_analysis || {};
+            const bk = ats.breakdown || {};
+
+            // Score
+            document.getElementById('tab-ra-score').textContent = ats.total_score || 0;
+            const tag = document.getElementById('tab-ra-tag');
+            tag.textContent = ats.rating_tag || 'ATS Diagnostic Ready';
+            tag.style.color = ats.rating_color || '#10b981';
+
+            document.getElementById('tab-ra-meta').textContent = 
+                `Candidate: ${data.candidate_name || 'Candidate'} | File: ${data.filename} (${data.file_size_kb} KB)`;
+
+            // 5 Pillars
+            if (bk.keyword_relevance) {
+                document.getElementById('tab-ra-p-kw').textContent = `${bk.keyword_relevance.score}/20`;
+                document.getElementById('tab-ra-p-kw-bar').style.width = `${(bk.keyword_relevance.score / 20) * 100}%`;
+            }
+            if (bk.skills) {
+                document.getElementById('tab-ra-p-sk').textContent = `${bk.skills.score}/20`;
+                document.getElementById('tab-ra-p-sk-bar').style.width = `${(bk.skills.score / 20) * 100}%`;
+            }
+            if (bk.structure) {
+                document.getElementById('tab-ra-p-st').textContent = `${bk.structure.score}/20`;
+                document.getElementById('tab-ra-p-st-bar').style.width = `${(bk.structure.score / 20) * 100}%`;
+            }
+            if (bk.readability) {
+                document.getElementById('tab-ra-p-rd').textContent = `${bk.readability.score}/20`;
+                document.getElementById('tab-ra-p-rd-bar').style.width = `${(bk.readability.score / 20) * 100}%`;
+            }
+            if (bk.completeness) {
+                document.getElementById('tab-ra-p-cp').textContent = `${bk.completeness.score}/20`;
+                document.getElementById('tab-ra-p-cp-bar').style.width = `${(bk.completeness.score / 20) * 100}%`;
+            }
+
+            // Counts
+            document.getElementById('tab-ra-cnt-sp').textContent = an.spelling_mistakes?.length || 0;
+            document.getElementById('tab-ra-cnt-gr').textContent = an.grammar_mistakes?.length || 0;
+            document.getElementById('tab-ra-cnt-tn').textContent = an.professional_language?.length || 0;
+            document.getElementById('tab-ra-cnt-ms').textContent = an.missing_sections?.length || 0;
+            document.getElementById('tab-ra-cnt-sk').textContent = (an.skills_analysis?.technical_skills?.length || 0) + (an.skills_analysis?.soft_skills?.length || 0);
+            document.getElementById('tab-ra-cnt-kw').textContent = an.keyword_suggestions?.keywords?.length || 0;
+            document.getElementById('tab-ra-cnt-st').textContent = an.resume_strengths?.length || 0;
+
+            // Spelling
+            const spWrap = document.getElementById('tab-ra-list-spelling');
+            const sps = an.spelling_mistakes || [];
+            if (sps.length === 0) {
+                spWrap.innerHTML = `<div style="padding: 10px 14px; border-radius: 8px; background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); color: #86efac; font-size: 0.85rem;"><i class="fa-solid fa-circle-check"></i> Great job! No spelling mistakes detected.</div>`;
+            } else {
+                spWrap.innerHTML = sps.map(m => `
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-card); border-radius: 10px; padding: 12px 16px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); color: #fca5a5; padding: 10px; border-radius: 8px; font-size: 0.84rem;">
+                                <div style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: #ef4444; margin-bottom: 2px;">Incorrect</div>
+                                <div>"${escapeHtmlDashboard(m.incorrect)}"</div>
+                                <div style="font-size: 0.72rem; color: var(--text-dim); margin-top: 4px;">Context: ...${escapeHtmlDashboard(m.context)}...</div>
+                            </div>
+                            <div style="background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); color: #86efac; padding: 10px; border-radius: 8px; font-size: 0.84rem;">
+                                <div style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: #22c55e; margin-bottom: 2px;">Suggestion</div>
+                                <div style="font-weight: 800;">"${escapeHtmlDashboard(m.suggestion)}"</div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Grammar
+            const grWrap = document.getElementById('tab-ra-list-grammar');
+            const grs = an.grammar_mistakes || [];
+            if (grs.length === 0) {
+                grWrap.innerHTML = `<div style="padding: 10px 14px; border-radius: 8px; background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); color: #86efac; font-size: 0.85rem;"><i class="fa-solid fa-circle-check"></i> No grammatical errors flagged.</div>`;
+            } else {
+                grWrap.innerHTML = grs.map(g => `
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-card); border-radius: 10px; padding: 12px 16px;">
+                        <div style="font-size: 0.84rem; margin-bottom: 6px;"><strong>Original:</strong> "${escapeHtmlDashboard(g.original_sentence)}"</div>
+                        <div style="font-size: 0.84rem; color: #86efac;"><strong>Suggested:</strong> "${escapeHtmlDashboard(g.suggested_sentence)}"</div>
+                    </div>
+                `).join('');
+            }
+
+            // Tone
+            const tnWrap = document.getElementById('tab-ra-list-tone');
+            const tns = an.professional_language || [];
+            if (tns.length === 0) {
+                tnWrap.innerHTML = `<div style="padding: 10px 14px; border-radius: 8px; background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); color: #86efac; font-size: 0.85rem;"><i class="fa-solid fa-circle-check"></i> Tone is strong and professional.</div>`;
+            } else {
+                tnWrap.innerHTML = tns.map(t => `
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-card); border-radius: 10px; padding: 12px 16px;">
+                        <div style="font-size: 0.84rem; color: #fca5a5; margin-bottom: 6px;"><strong>Weak / Informal Phrase:</strong> "${escapeHtmlDashboard(t.original_sentence)}"</div>
+                        <div style="font-size: 0.84rem; color: #86efac;"><strong>Suggested Action Sentence:</strong> "${escapeHtmlDashboard(t.suggested_sentence)}"</div>
+                    </div>
+                `).join('');
+            }
+
+            // Missing
+            const msWrap = document.getElementById('tab-ra-list-missing');
+            const mss = an.missing_sections || [];
+            if (mss.length === 0) {
+                msWrap.innerHTML = `<div style="padding: 10px 14px; border-radius: 8px; background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); color: #86efac; font-size: 0.85rem;"><i class="fa-solid fa-circle-check"></i> All essential resume sections are present.</div>`;
+            } else {
+                msWrap.innerHTML = mss.map(m => `
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-card); border-left: 4px solid #f59e0b; border-radius: 10px; padding: 12px 16px;">
+                        <div style="font-weight: 800; color: #fbbf24; font-size: 0.9rem; margin-bottom: 4px;">
+                            <i class="fa-solid fa-triangle-exclamation"></i> Missing Section: ${escapeHtmlDashboard(m.section)}
+                        </div>
+                        <div style="font-size: 0.84rem; color: var(--text-main);">
+                            <strong>Suggestion:</strong> ${escapeHtmlDashboard(m.suggestion)}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Skills
+            const tcWrap = document.getElementById('tab-ra-list-tech');
+            const sfWrap = document.getElementById('tab-ra-list-soft');
+            const tcs = an.skills_analysis?.technical_skills || [];
+            const sfs = an.skills_analysis?.soft_skills || [];
+
+            tcWrap.innerHTML = tcs.map(s => `
+                <span style="background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.3); color: #93c5fd; padding: 4px 10px; border-radius: 16px; font-size: 0.78rem; font-weight: 700;">
+                    ${escapeHtmlDashboard(s)}
+                </span>
+            `).join('') || '<span style="font-size: 0.8rem; color: var(--text-dim);">None</span>';
+
+            sfWrap.innerHTML = sfs.map(s => `
+                <span style="background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.3); color: #d8b4fe; padding: 4px 10px; border-radius: 16px; font-size: 0.78rem; font-weight: 700;">
+                    ${escapeHtmlDashboard(s)}
+                </span>
+            `).join('') || '<span style="font-size: 0.8rem; color: var(--text-dim);">None</span>';
+
+            // Keywords
+            const kwWrap = document.getElementById('tab-ra-list-kw');
+            const kws = an.keyword_suggestions?.keywords || [];
+            kwWrap.innerHTML = kws.map(k => `
+                <span style="background: rgba(13,148,136,0.12); border: 1px solid rgba(13,148,136,0.3); color: #5eead4; padding: 4px 10px; border-radius: 16px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                    ${escapeHtmlDashboard(k)}
+                </span>
+            `).join('') || '<span style="font-size: 0.8rem; color: var(--text-dim);">None</span>';
+
+            // Strengths
+            const stWrap = document.getElementById('tab-ra-list-strengths');
+            const sts = an.resume_strengths || [];
+            stWrap.innerHTML = sts.map(st => `
+                <div style="background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.2); padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; gap: 10px; font-size: 0.84rem; color: #bbf7d0;">
+                    <i class="fa-solid fa-check" style="color: #22c55e;"></i>
+                    <span>${escapeHtmlDashboard(st)}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('tab-ra-results').style.display = 'flex';
+        }
+
+        function switchTabRaSub(subId, btn) {
+            document.querySelectorAll('.tab-ra-subpane').forEach(p => p.style.display = 'none');
+            document.querySelectorAll('.tab-ra-sub-btn').forEach(b => {
+                b.style.background = 'transparent';
+                b.style.color = 'var(--text-muted)';
+            });
+
+            const target = document.getElementById(subId);
+            if (target) target.style.display = 'flex';
+            if (btn) {
+                btn.style.background = '#2563eb';
+                btn.style.color = '#fff';
+            }
+        }
+
+        async function saveTabAnalysisToProfile() {
+            if (!currentTabRaAnalysis || !window.db) return;
+            try {
+                await window.db.saveResumeAnalysis(currentTabRaAnalysis);
+                showToast('Resume analysis and ATS score saved to profile!', 'success');
+            } catch (e) {
+                showToast(`Failed to save: ${e.message}`, 'error');
+            }
+        }
+
+        function escapeHtmlDashboard(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
         }
 
         // ==========================================
