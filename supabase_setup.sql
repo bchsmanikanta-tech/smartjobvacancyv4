@@ -289,3 +289,57 @@ CREATE INDEX IF NOT EXISTS idx_offer_letters_candidate_email ON public.offer_let
 ALTER TABLE public.offer_letters ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow public operations on offer_letters" ON public.offer_letters;
 CREATE POLICY "Allow public operations on offer_letters" ON public.offer_letters FOR ALL USING (true) WITH CHECK (true);
+
+-- 11. Reports & Grievance Complaints Table
+CREATE TABLE IF NOT EXISTS public.reports (
+    report_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    reporter_id UUID,
+    reporter_email VARCHAR(255),
+    type VARCHAR(50) DEFAULT 'Job', -- 'Job', 'Company', 'Candidate', 'Application'
+    reported_item_id UUID,
+    reported_item_name VARCHAR(255),
+    reason VARCHAR(255) NOT NULL,
+    description TEXT,
+    status VARCHAR(50) DEFAULT 'Pending', -- 'Pending', 'Under Review', 'Resolved', 'Rejected'
+    admin_action VARCHAR(255),
+    resolution_details TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_reports_type ON public.reports(type);
+CREATE INDEX IF NOT EXISTS idx_reports_status ON public.reports(status);
+CREATE INDEX IF NOT EXISTS idx_reports_reporter_email ON public.reports(reporter_email);
+
+ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public operations on reports" ON public.reports;
+CREATE POLICY "Allow public operations on reports" ON public.reports FOR ALL USING (true) WITH CHECK (true);
+
+-- 12. Non-Destructive Migrations for Notifications Table
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS title VARCHAR(255);
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS recipient_id UUID;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS recipient_email VARCHAR(255);
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS related_record_id UUID;
+CREATE INDEX IF NOT EXISTS idx_notifications_recipient_email ON public.notifications(recipient_email);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON public.notifications(user_id);
+
+-- 13. Enable Supabase Realtime Publication on Core Tables
+DO $$
+BEGIN
+    BEGIN
+        ALTER PUBLICATION supabase_realtime ADD TABLE 
+            public.profiles, 
+            public.users, 
+            public.companies, 
+            public.jobs, 
+            public.applications, 
+            public.notifications, 
+            public.reports;
+    EXCEPTION
+        WHEN duplicate_object THEN
+            NULL; -- already in publication
+        WHEN undefined_object THEN
+            NULL; -- publication not configured
+    END;
+END $$;
+

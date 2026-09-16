@@ -12,7 +12,8 @@
         NOTIFICATIONS: 'smarthire_notifications',
         INTERVIEWS: 'smarthire_interviews',
         OFFERS: 'smarthire_offers',
-        FEEDBACK: 'smarthire_user_feedback'
+        FEEDBACK: 'smarthire_user_feedback',
+        REPORTS: 'smarthire_reports'
     };
 
     // Helper: Convert string IDs into valid RFC-4122 UUID format required by PostgreSQL
@@ -93,6 +94,9 @@
             if (!localStorage.getItem(STORAGE_KEYS.FEEDBACK)) {
                 localStorage.setItem(STORAGE_KEYS.FEEDBACK, JSON.stringify([]));
             }
+            if (!localStorage.getItem(STORAGE_KEYS.REPORTS)) {
+                localStorage.setItem(STORAGE_KEYS.REPORTS, JSON.stringify([]));
+            }
         }
 
         clearAllData() {
@@ -102,8 +106,10 @@
             localStorage.setItem(STORAGE_KEYS.INTERVIEWS, JSON.stringify([]));
             localStorage.setItem(STORAGE_KEYS.OFFERS, JSON.stringify([]));
             localStorage.setItem(STORAGE_KEYS.FEEDBACK, JSON.stringify([]));
+            localStorage.setItem(STORAGE_KEYS.REPORTS, JSON.stringify([]));
             localStorage.setItem('smartjob_saved_jobs', JSON.stringify([]));
             localStorage.setItem('smartjob_users_db', JSON.stringify([]));
+            localStorage.setItem('smartjob_admin_reports', JSON.stringify([]));
             localStorage.setItem('smarthire_chat_db', JSON.stringify({}));
             localStorage.removeItem(STORAGE_KEYS.PROFILES);
             localStorage.removeItem('smartjob_active_session');
@@ -192,30 +198,29 @@
             const client = this.getSupabase();
             if (client) {
                 try {
+                    const effectiveSeekerId = candidateId || newApp.candidateId || newApp.seekerId || newApp.email || 'seeker_default';
                     const payload = {
                         application_id: toUUID(newApp.id),
                         job_id: toUUID(newApp.jobId),
-                        seeker_id: toUUID(candidateId),
-                        candidate_id: toUUID(candidateId),
-                        company_id: companyId ? toUUID(companyId) : null,
-                        job_title: newApp.jobTitle,
-                        company: newApp.company,
-                        full_name: newApp.fullName,
-                        email: newApp.email,
-                        phone: newApp.phone,
-                        location: newApp.location,
-                        qualification: newApp.qualification,
-                        college: newApp.college,
-                        pass_year: String(newApp.passYear),
-                        cgpa: String(newApp.cgpa),
-                        skills: typeof newApp.skills === 'string' ? newApp.skills : JSON.stringify(newApp.skills),
-                        experience: newApp.experience,
-                        expected_salary: newApp.expectedSalary,
-                        resume_name: newApp.resumeName,
-                        cover_letter: newApp.coverLetter,
-                        ai_match_score: newApp.matchScore,
-                        status: newApp.status,
-                        notes: `Applicant: ${newApp.fullName} (${newApp.email}) - Qualification: ${newApp.qualification}`
+                        seeker_id: toUUID(effectiveSeekerId),
+                        job_title: newApp.jobTitle || 'Job Opening',
+                        company: newApp.company || 'Employer',
+                        full_name: newApp.fullName || 'Applicant',
+                        email: newApp.email || '',
+                        phone: newApp.phone || '',
+                        location: newApp.location || newApp.city || '',
+                        qualification: newApp.qualification || '',
+                        college: newApp.college || '',
+                        pass_year: String(newApp.passYear || ''),
+                        cgpa: String(newApp.cgpa || ''),
+                        skills: typeof newApp.skills === 'string' ? newApp.skills : JSON.stringify(newApp.skills || []),
+                        experience: newApp.experience || '',
+                        expected_salary: newApp.expectedSalary || '',
+                        resume_name: newApp.resumeName || '',
+                        cover_letter: newApp.coverLetter || '',
+                        ai_match_score: Number(newApp.matchScore || newApp.aiMatch || 88),
+                        status: newApp.status || 'Applied',
+                        notes: `Applicant: ${newApp.fullName} (${newApp.email}) | Company: ${companyId || newApp.company || ''}`
                     };
 
                     const { data, error } = await client.from('applications').upsert([payload]).select();
@@ -317,12 +322,14 @@
 
         async fetchApplicationsFromSupabase() {
             const client = this.getSupabase();
-            if (!client) return this.getApplications();
+            if (!client) {
+                return (this.getApplications() || []).filter(a => a.id !== 'app_101' && a.id !== 'app_102' && a.id !== 'app_103');
+            }
             try {
                 const { data, error } = await client.from('applications').select('*').order('applied_date', { ascending: false });
                 if (error || !data) {
                     console.warn("Supabase applications fetch error:", error);
-                    return this.getApplications();
+                    return (this.getApplications() || []).filter(a => a.id !== 'app_101' && a.id !== 'app_102' && a.id !== 'app_103');
                 }
 
                 const cloudApps = data.map(a => ({
@@ -332,10 +339,10 @@
                     job_id: a.job_id,
                     companyId: a.company_id || '',
                     company_id: a.company_id || '',
-                    candidateId: a.candidate_id || a.seeker_id || '',
-                    candidate_id: a.candidate_id || a.seeker_id || '',
-                    seekerId: a.seeker_id || a.candidate_id || '',
-                    seeker_id: a.seeker_id || a.candidate_id || '',
+                    candidateId: a.seeker_id || '',
+                    candidate_id: a.seeker_id || '',
+                    seekerId: a.seeker_id || '',
+                    seeker_id: a.seeker_id || '',
                     jobTitle: a.job_title,
                     company: a.company,
                     company_name: a.company,
@@ -361,20 +368,16 @@
                     appliedAt: a.applied_date
                 }));
 
-                // Merge with local applications
-                const localApps = this.getApplications();
+                // Merge with local applications, completely purging legacy dummy records
+                const localApps = (this.getApplications() || []).filter(a => a.id !== 'app_101' && a.id !== 'app_102' && a.id !== 'app_103');
                 const mergedMap = new Map();
+                // 1. Cloud data takes precedence
                 cloudApps.forEach(a => mergedMap.set(String(a.id), a));
+                // 2. Add local non-dummy unsynced items
                 localApps.forEach(a => {
                     const key = String(a.id || a.application_id);
                     if (!mergedMap.has(key)) {
                         mergedMap.set(key, a);
-                    } else {
-                        const existing = mergedMap.get(key);
-                        if (!existing.companyId && a.companyId) {
-                            existing.companyId = a.companyId;
-                            existing.company_id = a.company_id;
-                        }
                     }
                 });
 
@@ -382,7 +385,7 @@
                 localStorage.setItem(STORAGE_KEYS.APPLICATIONS, JSON.stringify(mergedList));
                 return mergedList;
             } catch (e) {
-                return this.getApplications();
+                return (this.getApplications() || []).filter(a => a.id !== 'app_101' && a.id !== 'app_102' && a.id !== 'app_103');
             }
         }
 
@@ -419,6 +422,23 @@
                 });
             }
 
+            return true;
+        }
+
+        async deleteApplication(appId) {
+            let apps = this.getApplications();
+            apps = apps.filter(a => String(a.id) !== String(appId) && String(a.application_id) !== String(appId));
+            localStorage.setItem(STORAGE_KEYS.APPLICATIONS, JSON.stringify(apps));
+
+            const client = this.getSupabase();
+            if (client) {
+                try {
+                    await client.from('applications').delete().eq('application_id', toUUID(appId));
+                    console.log("⚡ Application deleted from Supabase cloud table!");
+                } catch (e) {
+                    console.warn("Supabase deleteApplication notice:", e);
+                }
+            }
             return true;
         }
 
@@ -736,6 +756,54 @@
             return null;
         }
 
+        async fetchSeekerProfileFromSupabase(userEmailOrId = '') {
+            const currentUser = window.auth?.getCurrentUser();
+            const userKey = (userEmailOrId || currentUser?.email || 'default').trim().toLowerCase();
+            const client = this.getSupabase();
+            if (!client || userKey === 'default') return this.getSeekerProfile(userKey);
+
+            try {
+                const seekerUuid = toUUID(currentUser?.id || userKey);
+                // 1. Query job_seekers table by email or user_id
+                let jsData = null;
+                const { data: jsByEmail } = await client.from('job_seekers').select('*').eq('email', userKey).maybeSingle();
+                if (jsByEmail) {
+                    jsData = jsByEmail;
+                } else {
+                    const { data: jsById } = await client.from('job_seekers').select('*').eq('user_id', seekerUuid).maybeSingle();
+                    if (jsById) jsData = jsById;
+                }
+
+                // 2. Query profiles table
+                const { data: profData } = await client.from('profiles').select('*').eq('id', seekerUuid).maybeSingle();
+
+                if (jsData || profData) {
+                    const existing = this.getSeekerProfile(userKey) || {};
+                    const merged = {
+                        ...existing,
+                        id: seekerUuid,
+                        email: userKey,
+                        fullName: jsData?.full_name || profData?.full_name || existing.fullName || currentUser?.fullName || '',
+                        phone: profData?.phone || existing.phone || currentUser?.phone || '',
+                        location: jsData?.location || profData?.location || existing.location || '',
+                        qualification: jsData?.education || existing.qualification || "Bachelor's Degree",
+                        skills: (jsData?.skills && Array.isArray(jsData.skills) && jsData.skills.length > 0) ? jsData.skills : (existing.skills || []),
+                        experience: jsData?.experience_years || existing.experience || 'Fresher',
+                        expectedSalary: jsData?.expected_salary || existing.expectedSalary || '',
+                        atsScore: jsData?.ats_score || existing.atsScore || 85,
+                        updatedAt: new Date().toISOString()
+                    };
+
+                    localStorage.setItem(`smarthire_profile_${userKey}`, JSON.stringify(merged));
+                    localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(merged));
+                    return merged;
+                }
+            } catch (e) {
+                console.warn("Supabase fetchSeekerProfile notice:", e);
+            }
+            return this.getSeekerProfile(userKey);
+        }
+
         // ==========================================
         // 3B. AI RESUME ANALYSIS PERSISTENCE & HISTORY
         // ==========================================
@@ -773,18 +841,43 @@
                 console.warn("Storage warning saving resume analysis:", e);
             }
 
-            // 2. Sync ATS score to seeker profile
-            const atsScore = record.analysis?.ats_analysis?.total_score;
-            if (atsScore) {
-                try {
-                    await this.saveSeekerProfile({
-                        atsScore: atsScore,
-                        lastResumeAnalyzed: record.filename,
-                        lastResumeAnalysisDate: record.savedAt
-                    }, userKey);
-                } catch (e) {
-                    console.warn("Profile sync error on resume analysis:", e);
-                }
+            // 2. Extract ATS score & newly found skills to sync with candidate profile in Supabase
+            const atsScore = record.analysis?.ats_analysis?.total_score || record.ats_score;
+            const techSkills = record.analysis?.skills_analysis?.technical_skills || [];
+            const softSkills = record.analysis?.skills_analysis?.soft_skills || [];
+            const newSkills = [...techSkills, ...softSkills];
+
+            const existingProfile = this.getSeekerProfile(userKey) || {};
+            let mergedSkills = existingProfile.skills || [];
+            if (typeof mergedSkills === 'string') {
+                mergedSkills = mergedSkills.split(',').map(s => s.trim()).filter(Boolean);
+            }
+            if (newSkills.length > 0) {
+                const skillSet = new Set(mergedSkills.map(s => s.toLowerCase()));
+                newSkills.forEach(s => {
+                    if (s && !skillSet.has(s.toLowerCase())) {
+                        mergedSkills.push(s);
+                        skillSet.add(s.toLowerCase());
+                    }
+                });
+            }
+
+            try {
+                await this.saveSeekerProfile({
+                    atsScore: atsScore || existingProfile.atsScore || 85,
+                    skills: mergedSkills,
+                    lastResumeAnalyzed: record.filename,
+                    lastResumeAnalysisDate: record.savedAt
+                }, userKey);
+            } catch (e) {
+                console.warn("Profile sync error on resume analysis:", e);
+            }
+
+            // Emit custom event to refresh UI across active tabs
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('smarthire_resume_analyzed', {
+                    detail: { record, atsScore, skills: mergedSkills }
+                }));
             }
 
             return record;
@@ -1808,7 +1901,205 @@
         }
 
         // ==========================================
-        // 10. UNIFIED ALL-TABLE CLOUD SYNC
+        // 10. REPORTS & COMPLAINTS (SUPABASE + LOCAL)
+        // ==========================================
+        getReports() {
+            try {
+                return JSON.parse(localStorage.getItem(STORAGE_KEYS.REPORTS) || localStorage.getItem('smartjob_admin_reports') || '[]');
+            } catch (e) {
+                return [];
+            }
+        }
+
+        async fetchReportsFromSupabase() {
+            const client = this.getSupabase();
+            if (!client) return this.getReports();
+            try {
+                const { data, error } = await client.from('reports').select('*').order('created_at', { ascending: false });
+                if (!error && Array.isArray(data)) {
+                    const mapped = data.map(r => ({
+                        id: r.report_id,
+                        report_id: r.report_id,
+                        reporter_id: r.reporter_id,
+                        reporter: r.reporter_email,
+                        reporter_email: r.reporter_email,
+                        type: r.type || 'Job',
+                        reportedItem: r.reported_item_name || 'Reported Item',
+                        reported_item_name: r.reported_item_name,
+                        reported_item_id: r.reported_item_id,
+                        reason: r.reason,
+                        description: r.description,
+                        details: r.description,
+                        status: r.status || 'Pending',
+                        admin_action: r.admin_action || '',
+                        resolution_details: r.resolution_details || '',
+                        date: r.created_at ? new Date(r.created_at).toISOString().split('T')[0] : 'Recent',
+                        createdAt: r.created_at
+                    }));
+                    localStorage.setItem(STORAGE_KEYS.REPORTS, JSON.stringify(mapped));
+                    localStorage.setItem('smartjob_admin_reports', JSON.stringify(mapped));
+                    return mapped;
+                }
+            } catch(e) {
+                console.warn("fetchReportsFromSupabase notice:", e);
+            }
+            return this.getReports();
+        }
+
+        async createReport(reportData) {
+            const rawId = reportData.id || generateUUID();
+            const repId = toUUID(rawId);
+            const newRep = {
+                id: repId,
+                report_id: repId,
+                reporter_id: reportData.reporter_id ? toUUID(reportData.reporter_id) : null,
+                reporter: reportData.reporter_email || reportData.reporter || 'Anonymous User',
+                reporter_email: reportData.reporter_email || reportData.reporter || '',
+                type: reportData.type || 'Job',
+                reportedItem: reportData.reported_item_name || reportData.reportedItem || 'Listing',
+                reported_item_name: reportData.reported_item_name || reportData.reportedItem || 'Listing',
+                reported_item_id: reportData.reported_item_id ? toUUID(reportData.reported_item_id) : null,
+                reason: reportData.reason || 'Misleading content',
+                description: reportData.description || reportData.details || '',
+                details: reportData.description || reportData.details || '',
+                status: 'Pending',
+                admin_action: '',
+                resolution_details: '',
+                date: new Date().toISOString().split('T')[0],
+                createdAt: new Date().toISOString()
+            };
+
+            let all = this.getReports();
+            all.unshift(newRep);
+            localStorage.setItem(STORAGE_KEYS.REPORTS, JSON.stringify(all));
+            localStorage.setItem('smartjob_admin_reports', JSON.stringify(all));
+
+            // Sync to Supabase
+            const client = this.getSupabase();
+            if (client) {
+                try {
+                    await client.from('reports').insert([{
+                        report_id: repId,
+                        reporter_id: newRep.reporter_id,
+                        reporter_email: newRep.reporter_email,
+                        type: newRep.type,
+                        reported_item_id: newRep.reported_item_id,
+                        reported_item_name: newRep.reported_item_name,
+                        reason: newRep.reason,
+                        description: newRep.description,
+                        status: 'Pending'
+                    }]);
+                } catch(e) {
+                    console.warn("createReport Supabase insert notice:", e);
+                }
+            }
+
+            // Also dispatch admin notification
+            await this.addNotification({
+                userId: 'admin',
+                userEmail: 'admin@smartjob.com',
+                title: `New Grievance Report: ${newRep.type}`,
+                message: `${newRep.reporter} reported "${newRep.reportedItem}": ${newRep.reason}`,
+                type: 'warning'
+            });
+
+            return newRep;
+        }
+
+        async updateReportStatus(reportId, newStatus, adminAction = '', resolutionDetails = '') {
+            let all = this.getReports();
+            const idx = all.findIndex(r => String(r.id) === String(reportId) || String(r.report_id) === String(reportId));
+            if (idx >= 0) {
+                all[idx].status = newStatus;
+                if (adminAction) all[idx].admin_action = adminAction;
+                if (resolutionDetails) all[idx].resolution_details = resolutionDetails;
+                localStorage.setItem(STORAGE_KEYS.REPORTS, JSON.stringify(all));
+                localStorage.setItem('smartjob_admin_reports', JSON.stringify(all));
+            }
+
+            const client = this.getSupabase();
+            if (client) {
+                try {
+                    await client.from('reports').update({
+                        status: newStatus,
+                        admin_action: adminAction,
+                        resolution_details: resolutionDetails,
+                        updated_at: new Date().toISOString()
+                    }).eq('report_id', toUUID(reportId));
+                } catch(e) {
+                    console.warn("updateReportStatus notice:", e);
+                }
+            }
+            return true;
+        }
+
+        async deleteReport(reportId) {
+            let all = this.getReports();
+            all = all.filter(r => String(r.id) !== String(reportId) && String(r.report_id) !== String(reportId));
+            localStorage.setItem(STORAGE_KEYS.REPORTS, JSON.stringify(all));
+            localStorage.setItem('smartjob_admin_reports', JSON.stringify(all));
+
+            const client = this.getSupabase();
+            if (client) {
+                try {
+                    await client.from('reports').delete().eq('report_id', toUUID(reportId));
+                } catch(e) {}
+            }
+            return true;
+        }
+
+        // ==========================================
+        // 11. ENHANCED NOTIFICATIONS DISPATCH
+        // ==========================================
+        async sendAdminAlert({ recipientId, recipientEmail, title, message, type = 'info', relatedRecordId = null }) {
+            const notifId = toUUID(generateUUID());
+            const recId = recipientId ? toUUID(recipientId) : (recipientEmail ? toUUID(recipientEmail) : null);
+            const recEmail = (recipientEmail || '').trim().toLowerCase();
+
+            const newNotif = {
+                id: notifId,
+                notification_id: notifId,
+                userId: recId,
+                user_id: recId,
+                recipient_id: recId,
+                recipientEmail: recEmail,
+                recipient_email: recEmail,
+                title: title,
+                message: message,
+                type: type,
+                relatedRecordId: relatedRecordId ? toUUID(relatedRecordId) : null,
+                related_record_id: relatedRecordId ? toUUID(relatedRecordId) : null,
+                isRead: false,
+                status: 'unread',
+                createdAt: new Date().toISOString()
+            };
+
+            let notifs = this.getAllNotifications();
+            notifs.unshift(newNotif);
+            localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifs));
+
+            // Sync to Supabase notifications table
+            const client = this.getSupabase();
+            if (client) {
+                try {
+                    await client.from('notifications').insert([{
+                        notification_id: notifId,
+                        user_id: recId,
+                        message: `${title}: ${message}`,
+                        type: type,
+                        status: 'unread'
+                    }]);
+                } catch (e) {
+                    console.warn("Supabase notification insert notice:", e);
+                }
+            }
+
+            window.dispatchEvent(new CustomEvent('smartjob_new_notification', { detail: newNotif }));
+            return newNotif;
+        }
+
+        // ==========================================
+        // 12. UNIFIED ALL-TABLE CLOUD SYNC
         // ==========================================
         async syncAllFromSupabase() {
             try {
@@ -1818,6 +2109,7 @@
                     this.fetchInterviewsFromSupabase(),
                     this.fetchOffersFromSupabase(),
                     this.fetchFeedbackFromSupabase(),
+                    this.fetchReportsFromSupabase(),
                     window.auth?.syncUsersFromSupabase?.()
                 ]);
                 console.log("🔄 Dual-Engine Database fully synced with Supabase PostgreSQL cloud!");

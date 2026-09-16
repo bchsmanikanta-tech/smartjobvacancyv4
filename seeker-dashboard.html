@@ -928,6 +928,11 @@
         </a>
 
         <div class="nav-actions">
+            <!-- Supabase Realtime Connection Badge -->
+            <div id="seeker-realtime-badge" style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); border-radius: 20px; font-size: 0.76rem; font-weight: 700; color: #059669;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981; box-shadow: 0 0 6px #10b981;"></span>
+                <span>Supabase Realtime: Active</span>
+            </div>
             <button class="btn-nav-action btn-nav-search" onclick="openSearchVacanciesPage()">
                 <i class="fa-solid fa-magnifying-glass"></i> Search Vacancies
             </button>
@@ -3292,6 +3297,7 @@
     <script src="js/supabase-config.js?v=20260825_3"></script>
     <script src="js/auth.js?v=20260825_3"></script>
     <script src="js/db.js?v=20260825_3"></script>
+    <script src="js/seeker-engine.js?v=20260916_1"></script>
     <script>
         let currentSeekerName = 'BVCITS';
         let currentSeekerEmail = 'seeker@smartjob.com';
@@ -3371,7 +3377,7 @@
             return true;
         }
 
-        function loadSeekerDashboard() {
+        async function loadSeekerDashboard() {
             if (!checkSeekerRoleAccess()) return;
 
             const q = getQueryParams();
@@ -3410,6 +3416,13 @@
             const userPhone = q.phone ? decodeURIComponent(q.phone).trim() : (user?.phone || '');
             if (userPhone && document.getElementById('seeker-phone-input')) {
                 document.getElementById('seeker-phone-input').value = userPhone;
+            }
+
+            // Asynchronously fetch live candidate profile from Supabase
+            if (window.db?.fetchSeekerProfileFromSupabase && currentSeekerEmail) {
+                try {
+                    await window.db.fetchSeekerProfileFromSupabase(currentSeekerEmail);
+                } catch (_) {}
             }
 
             const profile = window.db?.getSeekerProfile ? window.db.getSeekerProfile(currentSeekerEmail) : null;
@@ -3464,7 +3477,7 @@
 
                 const myApps = window.db.getApplicationsForCandidate ? window.db.getApplicationsForCandidate(currentSeekerEmail) : [];
 
-                const selected = myApps.filter(a => a.status === 'Shortlisted' || a.status === 'Hired' || a.status === 'Offered').length;
+                const selected = myApps.filter(a => a.status === 'Shortlisted' || a.status === 'Hired' || a.status === 'Offer Sent' || a.status === 'Offer Accepted').length;
                 const active = myApps.filter(a => !a.status || a.status === 'Applied' || a.status === 'Under Review').length;
 
                 document.getElementById('kpi-applied-jobs').textContent = myApps.length;
@@ -3679,30 +3692,72 @@
             const container = document.getElementById('seeker-recommended-grid');
             if (!container || !window.db) return;
 
-            const jobs = window.db.getJobs() || [];
+            const jobs = (window.db.getActiveJobs ? window.db.getActiveJobs() : (window.db.getJobs() || []))
+                .filter(j => j.status !== 'closed' && j.status !== 'archived');
+
             if (jobs.length === 0) {
-                container.innerHTML = `<div style="color: var(--text-dim); padding: 40px; text-align: center; grid-column: 1 / -1;">No active job vacancies to analyze.</div>`;
+                container.innerHTML = `
+                    <div style="grid-column: 1 / -1; padding: 50px 20px; text-align: center; color: var(--text-dim); background: var(--bg-card); border: 1px dashed var(--border-card); border-radius: 16px;">
+                        <i class="fa-solid fa-briefcase" style="font-size: 2.5rem; color: #cbd5e1; margin-bottom: 12px; display: block;"></i>
+                        <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text-main); margin-bottom: 6px;">No Active Vacancies Found</h3>
+                        <p style="font-size: 0.86rem; color: var(--text-muted); max-width: 440px; margin: 0 auto;">Check back soon as verified employers post new openings in real time.</p>
+                    </div>
+                `;
                 return;
             }
 
-            const candidateSkillsRaw = document.getElementById('seeker-skills-input')?.value || 'React, Node.js, Python, PostgreSQL, REST APIs, Git, Cloud';
+            const profile = window.db.getSeekerProfile ? window.db.getSeekerProfile(currentSeekerEmail) : {};
+            let candidateSkillsRaw = document.getElementById('seeker-skills-input')?.value || '';
+            if (!candidateSkillsRaw && profile?.skills) {
+                candidateSkillsRaw = Array.isArray(profile.skills) ? profile.skills.join(', ') : profile.skills;
+            }
+
             const candTokens = candidateSkillsRaw.toLowerCase().split(/[\s,]+/).filter(t => t.length > 2);
+
+            if (candTokens.length === 0) {
+                container.innerHTML = `
+                    <div style="grid-column: 1 / -1; padding: 50px 20px; text-align: center; color: var(--text-dim); background: var(--bg-card); border: 1px dashed var(--border-card); border-radius: 16px;">
+                        <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 2.5rem; color: #a855f7; margin-bottom: 12px; display: block;"></i>
+                        <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text-main); margin-bottom: 6px;">Unlock AI Job Recommendations</h3>
+                        <p style="font-size: 0.86rem; color: var(--text-muted); max-width: 480px; margin: 0 auto 16px auto;">Add your technical &amp; soft skills in your Profile tab or analyze your resume to generate personalized AI vacancy recommendations.</p>
+                        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                            <button class="btn-nav-action" onclick="switchSeekerTab('tab-profile')" style="background: #2563eb; color: #fff; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 800;">
+                                <i class="fa-regular fa-user"></i> Complete Profile Skills
+                            </button>
+                            <button class="btn-nav-action" onclick="switchSeekerTab('tab-resume-analysis')" style="background: linear-gradient(135deg, #a855f7, #3b82f6); color: #fff; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 800;">
+                                <i class="fa-solid fa-file-waveform"></i> Run AI Resume Analysis
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('cnt-rec-all').textContent = '0';
+                document.getElementById('cnt-rec-high').textContent = '0';
+                return;
+            }
 
             // Compute AI Match for each job
             cachedRecommendedJobs = jobs.map(j => {
-                const jobText = `${j.title} ${j.skills || ''} ${j.description || ''}`.toLowerCase();
-                let matches = 0;
+                const jobSkillsStr = Array.isArray(j.skills) ? j.skills.join(' ') : (j.skills || '');
+                const jobText = `${j.title || ''} ${jobSkillsStr} ${j.description || ''}`.toLowerCase();
+                const matchedSkills = [];
                 candTokens.forEach(t => {
-                    if (jobText.includes(t)) matches++;
+                    if (jobText.includes(t)) {
+                        matchedSkills.push(t);
+                    }
                 });
 
-                const basePct = Math.round((matches / Math.max(candTokens.length, 1)) * 60);
-                const score = Math.min(98, Math.max(68, 40 + basePct + (j.title.toLowerCase().includes('engineer') || j.title.toLowerCase().includes('developer') ? 15 : 8)));
+                const uniqueMatched = Array.from(new Set(matchedSkills));
+                const matchRatio = uniqueMatched.length / Math.max(candTokens.length, 1);
+                const titleBonus = (j.title || '').toLowerCase().includes(candTokens[0]) ? 15 : 0;
+                const rawScore = Math.round(50 + (matchRatio * 45) + titleBonus);
+                const score = Math.min(98, Math.max(55, rawScore));
 
                 return {
                     ...j,
                     matchScore: score,
-                    isRemote: (j.location || '').toLowerCase().includes('remote') || true
+                    matchedSkillsCount: uniqueMatched.length,
+                    topMatchedSkills: uniqueMatched.slice(0, 4),
+                    isRemote: (j.location || '').toLowerCase().includes('remote') || (j.work_mode || '').toLowerCase().includes('remote')
                 };
             });
 
@@ -3711,7 +3766,7 @@
 
             // Update Counts
             document.getElementById('cnt-rec-all').textContent = cachedRecommendedJobs.length;
-            document.getElementById('cnt-rec-high').textContent = cachedRecommendedJobs.filter(j => j.matchScore >= 85).length;
+            document.getElementById('cnt-rec-high').textContent = cachedRecommendedJobs.filter(j => j.matchScore >= 80).length;
 
             displayRecommendedCards(cachedRecommendedJobs);
         }
@@ -3731,9 +3786,13 @@
                 card.className = 'white-card';
                 card.style.cssText = 'padding: 22px; border-radius: 16px; border: 1px solid var(--border-card); display: flex; flex-direction: column; justify-content: space-between; gap: 14px; position: relative; overflow: hidden; box-shadow: 0 4px 18px rgba(0,0,0,0.03);';
                 
-                const scoreColor = j.matchScore >= 85 ? '#10b981' : '#2563eb';
-                const scoreBg = j.matchScore >= 85 ? 'rgba(16,185,129,0.12)' : 'rgba(37,99,235,0.12)';
+                const scoreColor = j.matchScore >= 80 ? '#10b981' : '#2563eb';
+                const scoreBg = j.matchScore >= 80 ? 'rgba(16,185,129,0.12)' : 'rgba(37,99,235,0.12)';
                 const tagLabel = j.matchScore >= 85 ? '🔥 Top Pick' : '⭐ Strong Fit';
+
+                const matchReason = j.topMatchedSkills && j.topMatchedSkills.length > 0
+                    ? `Strong alignment on required skills: <strong>${j.topMatchedSkills.join(', ')}</strong>.`
+                    : `Matches your professional career profile and experience level.`;
 
                 card.innerHTML = `
                     <div>
@@ -3749,7 +3808,7 @@
 
                         <!-- Title & Company -->
                         <div style="font-size: 0.76rem; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 0.5px;">
-                            ${j.company || 'Verified Employer'}
+                            ${j.company || j.company_name || 'Verified Employer'}
                         </div>
                         <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text-main); margin-top: 2px; line-height: 1.3;">
                             ${j.title}
@@ -3761,13 +3820,13 @@
                                 <i class="fa-solid fa-location-dot"></i> ${j.location || 'Remote'}
                             </span>
                             <span style="background: var(--bg-body); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-card);">
-                                <i class="fa-solid fa-wallet"></i> ${j.salary || '₹12 - ₹24 LPA'}
+                                <i class="fa-solid fa-wallet"></i> ${j.salary || 'Competitive CTC'}
                             </span>
                         </div>
 
                         <!-- AI Rationale Snippet -->
                         <div style="background: rgba(37,99,235,0.04); border-left: 3px solid #2563eb; padding: 8px 10px; border-radius: 0 6px 6px 0; font-size: 0.76rem; color: var(--text-main); margin-bottom: 12px; line-height: 1.4;">
-                            <strong>💡 AI Match Reason:</strong> High alignment with your registered full-stack technical competencies &amp; strong career growth trajectory.
+                            <strong>💡 AI Match Reason:</strong> ${matchReason}
                         </div>
 
                         <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
@@ -3777,7 +3836,7 @@
 
                     <!-- Action Buttons -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 10px; border-top: 1px solid var(--border-card);">
-                        <button class="btn-nav-action" style="background: #2563eb; color: #fff; border: none; padding: 9px; font-size: 0.82rem; justify-content: center; border-radius: 8px; font-weight: 800;" onclick="openApplyModal('${j.id}', '${j.title.replace(/'/g, "\\'")}', '${(j.company || 'Employer').replace(/'/g, "\\'")}')">
+                        <button class="btn-nav-action" style="background: #2563eb; color: #fff; border: none; padding: 9px; font-size: 0.82rem; justify-content: center; border-radius: 8px; font-weight: 800;" onclick="openApplyModal('${j.id || j.job_id}', '${(j.title || '').replace(/'/g, "\\'")}', '${(j.company || j.company_name || 'Employer').replace(/'/g, "\\'")}')">
                             <i class="fa-solid fa-paper-plane"></i> Apply Now
                         </button>
                         <button class="btn-nav-action" style="background: transparent; color: var(--text-main); border: 1px solid var(--border-card); padding: 9px; font-size: 0.82rem; justify-content: center; border-radius: 8px; font-weight: 700;" onclick="switchSeekerTab('tab-chat')">
@@ -4870,9 +4929,15 @@
             if (skillsInput) skillsInput.value = newSkills;
             if (atsResumeInput) atsResumeInput.value = newSkills;
 
+            // Persist to Supabase
+            if (window.db?.saveSeekerProfile) {
+                window.db.saveSeekerProfile({ skills: newSkills }, currentSeekerEmail);
+            }
+
             updateResumeLivePreview();
             runAtsCalculation();
-            showToast(`Added [${toAdd}] to your profile & AI resume!`, 'success');
+            renderAiRecommendedBoard();
+            showToast(`Added [${toAdd}] to your profile & AI recommendations updated!`, 'success');
         }
 
         // ==========================================
@@ -5272,8 +5337,9 @@
         async function saveTabAnalysisToProfile() {
             if (!currentTabRaAnalysis || !window.db) return;
             try {
-                await window.db.saveResumeAnalysis(currentTabRaAnalysis);
-                showToast('Resume analysis and ATS score saved to profile!', 'success');
+                await window.db.saveResumeAnalysis(currentTabRaAnalysis, currentSeekerEmail);
+                showToast('Resume analysis, ATS score & skills synced to your profile!', 'success');
+                await loadSeekerDashboard();
             } catch (e) {
                 showToast(`Failed to save: ${e.message}`, 'error');
             }
@@ -6878,8 +6944,13 @@ class LRUCache:
             }, 3500);
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            loadSeekerDashboard();
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadSeekerDashboard();
+
+            // Initialize Real-Time Seeker Engine
+            if (window.seekerEngine && typeof window.seekerEngine.init === 'function') {
+                await window.seekerEngine.init();
+            }
 
             // Profile Form Submit (Persistent Save)
             document.getElementById('form-seeker-profile')?.addEventListener('submit', async (e) => {
@@ -6989,7 +7060,7 @@ class LRUCache:
 
                 closeApplyModal();
                 showToast(`🎉 Application successfully submitted for "${jobTitle}" at ${company}!`, 'success');
-                loadSeekerDashboard();
+                await loadSeekerDashboard();
                 renderApplicationHistory();
             });
 
@@ -7015,6 +7086,10 @@ class LRUCache:
             window.addEventListener('smarthire_offer_updated', () => {
                 renderApplicationHistory();
                 loadSeekerDashboard();
+            });
+            window.addEventListener('smarthire_resume_analyzed', () => {
+                loadSeekerDashboard();
+                renderAiRecommendedBoard();
             });
 
             // Logout

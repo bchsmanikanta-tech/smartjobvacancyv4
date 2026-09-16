@@ -95,6 +95,50 @@ class AuthService {
     }
 
     /**
+     * Real-time listener for active user's block status
+     * If administrator blocks this active account, immediately invalidate session & redirect
+     */
+    _setupBlockListener(userId, userEmail) {
+        if (!this.supabaseClient || !userId) return;
+        try {
+            this.supabaseClient
+                .channel(`realtime-block-watcher-${userId}`)
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'profiles',
+                    filter: `id=eq.${userId}`
+                }, (payload) => {
+                    const newStatus = payload?.new?.status;
+                    if (newStatus === 'blocked') {
+                        console.warn("🚨 [ACCESS TERMINATED] Account has been blocked in real-time by Administrator!");
+                        this.logout();
+                        alert("Your account has been blocked by the administrator. Please contact support.");
+                        window.location.replace("auth.html");
+                    }
+                })
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'users',
+                    filter: `user_id=eq.${userId}`
+                }, (payload) => {
+                    const newStatus = payload?.new?.status;
+                    if (newStatus === 'blocked') {
+                        console.warn("🚨 [ACCESS TERMINATED] Account has been blocked in real-time by Administrator!");
+                        this.logout();
+                        alert("Your account has been blocked by the administrator. Please contact support.");
+                        window.location.replace("auth.html");
+                    }
+                })
+                .subscribe();
+        } catch (e) {
+            console.warn("Block listener setup notice:", e);
+        }
+    }
+
+
+    /**
      * Helper to map roles consistently across legacy and new formats
      */
     _normalizeRole(role) {
@@ -466,8 +510,62 @@ class AuthService {
             console.log("ℹ️ [LOGIN] Profile was generated from Auth user metadata.");
         }
 
+        // 4.5 STRICT DATABASE & SERVER-SIDE BLOCKING ENFORCEMENT
+        const userEmailNorm = (authUser.email || profile.email || queryEmail || '').toLowerCase().trim();
+        const blockedEmails = JSON.parse(localStorage.getItem('smartjob_blocked_users') || '[]');
+        let isAccountBlocked = blockedEmails.includes(userEmailNorm) || (profile && (profile.status === 'blocked' || profile.isBlocked === true));
+
+        // Check live Supabase status if client available
+        if (!isAccountBlocked && this.supabaseClient) {
+            try {
+                const { data: pCheck } = await this.supabaseClient
+                    .from('profiles')
+                    .select('status')
+                    .eq('id', authUser.id)
+                    .maybeSingle();
+                if (pCheck && pCheck.status === 'blocked') isAccountBlocked = true;
+
+                if (!isAccountBlocked) {
+                    const { data: uCheck } = await this.supabaseClient
+                        .from('users')
+                        .select('status')
+                        .ilike('email', userEmailNorm)
+                        .maybeSingle();
+                    if (uCheck && uCheck.status === 'blocked') isAccountBlocked = true;
+                }
+
+                if (!isAccountBlocked && profile.role === 'company') {
+                    const { data: cCheck } = await this.supabaseClient
+                        .from('companies')
+                        .select('status')
+                        .or(`user_id.eq.${authUser.id},email.ilike.${userEmailNorm}`)
+                        .maybeSingle();
+                    if (cCheck && (cCheck.status === 'blocked' || cCheck.status === 'rejected')) isAccountBlocked = true;
+                }
+            } catch (errCheck) {
+                console.warn("Status verification notice:", errCheck);
+            }
+        }
+
+        if (isAccountBlocked) {
+            console.warn("🚫 [LOGIN BLOCKED] Attempt to log into blocked account:", userEmailNorm);
+            try {
+                if (this.supabaseClient) await this.supabaseClient.auth.signOut();
+            } catch (e) {}
+            this.currentUser = null;
+            this.currentSession = null;
+            sessionStorage.clear();
+            localStorage.removeItem(AUTH_CONFIG.STORAGE_SESSION_KEY);
+            localStorage.removeItem(AUTH_CONFIG.STORAGE_REMEMBER_KEY);
+            localStorage.removeItem(AUTH_CONFIG.STORAGE_USER_CACHE);
+            throw new Error("Your account has been blocked by the administrator. Please contact support.");
+        }
+
         // 5. Create persistent active session
         this.createSession(profile, rememberMe);
+
+        // Setup real-time block watcher for this active session
+        this._setupBlockListener(profile.id, userEmailNorm);
 
         const destUrl = this.getRoleRedirectUrl(profile.role);
         console.log("🚀 [LOGIN] Final dashboard routing destination:", destUrl);
@@ -621,6 +719,19 @@ class AuthService {
      */
     async restoreSession() {
         const activeUser = this.getCurrentUser();
+        const blockedEmails = JSON.parse(localStorage.getItem('smartjob_blocked_users') || '[]');
+
+        if (activeUser) {
+            const userEmail = (activeUser.email || '').toLowerCase().trim();
+            if (activeUser.status === 'blocked' || activeUser.isBlocked === true || blockedEmails.includes(userEmail)) {
+                console.warn("🚫 Active cached session belongs to blocked user. Logging out.");
+                this.logout();
+                alert("Your account has been blocked by the administrator. Please contact support.");
+                window.location.replace("auth.html");
+                return null;
+            }
+        }
+
         if (!this.supabaseClient) return activeUser;
         try {
             const { data, error } = await this.supabaseClient.auth.getSession();
@@ -633,7 +744,20 @@ class AuthService {
                 }
                 this.currentSession = data.session;
                 const user = await this._syncUserProfile(data.session.user);
+
+                // Verify user is not blocked in Supabase
+                const userEmail = (user?.email || data.session.user.email || '').toLowerCase().trim();
+                if (user && (user.status === 'blocked' || user.isBlocked === true || blockedEmails.includes(userEmail))) {
+                    console.warn("🚫 Restored user is blocked. Invaliding session.");
+                    try { await this.supabaseClient.auth.signOut(); } catch(e) {}
+                    this.logout();
+                    alert("Your account has been blocked by the administrator. Please contact support.");
+                    window.location.replace("auth.html");
+                    return null;
+                }
+
                 this.createSession(user, true);
+                if (user?.id) this._setupBlockListener(user.id, userEmail);
                 return user;
             }
         } catch (e) {
@@ -1176,9 +1300,59 @@ class AuthService {
             } catch (uErr) {
                 console.warn("Users status update notice:", uErr);
             }
+
+            try {
+                const compStatus = newStatus === 'blocked' ? 'blocked' : 'approved';
+                await this.supabaseClient.from('companies').update({ status: compStatus }).or(`email.ilike.${normalized},contact_phone.ilike.${normalized}`);
+            } catch (cErr) {
+                console.warn("Companies status update notice:", cErr);
+            }
         }
 
         return { success: true, email: normalized, status: newStatus, isBlocked: newStatus === 'blocked' };
+    }
+
+    /**
+     * Block/Unblock company entity in Supabase and invalidate credentials
+     */
+    async toggleBlockCompany(companyId, companyEmail = '', companyName = '') {
+        const emailNorm = (companyEmail || '').trim().toLowerCase();
+        let blockedEmails = JSON.parse(localStorage.getItem('smartjob_blocked_users') || '[]');
+        const isBlocked = (emailNorm && blockedEmails.includes(emailNorm));
+        const newStatus = isBlocked ? 'approved' : 'blocked';
+        const userStatus = isBlocked ? 'active' : 'blocked';
+
+        if (emailNorm) {
+            if (newStatus === 'blocked') {
+                if (!blockedEmails.includes(emailNorm)) blockedEmails.push(emailNorm);
+            } else {
+                blockedEmails = blockedEmails.filter(e => e !== emailNorm);
+            }
+            localStorage.setItem('smartjob_blocked_users', JSON.stringify(blockedEmails));
+        }
+
+        if (this.supabaseClient) {
+            if (companyId) {
+                try {
+                    await this.supabaseClient.from('companies').update({ status: newStatus }).eq('company_id', companyId);
+                } catch(e) {}
+            }
+            if (emailNorm) {
+                try {
+                    await this.supabaseClient.from('profiles').update({ status: userStatus, updated_at: new Date().toISOString() }).ilike('email', emailNorm);
+                } catch(e) {}
+                try {
+                    await this.supabaseClient.from('users').update({ status: userStatus, updated_at: new Date().toISOString() }).ilike('email', emailNorm);
+                } catch(e) {}
+            }
+            if (companyName) {
+                try {
+                    await this.supabaseClient.from('companies').update({ status: newStatus }).ilike('company_name', companyName.trim());
+                } catch(e) {}
+            }
+        }
+
+        return { success: true, status: newStatus, isBlocked: newStatus === 'blocked' };
     }
 
     /**

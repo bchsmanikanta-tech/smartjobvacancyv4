@@ -696,10 +696,33 @@ document.addEventListener('DOMContentLoaded', () => {
                     <i class="fa-solid fa-paper-plane"></i>
                     <span>1-Click AI Apply Now</span>
                 </button>
+
+                <button class="btn-secondary w-full" id="btn-report-job-modal" style="margin-top: 10px; border: 1px solid rgba(239,68,68,0.4); color: #fca5a5; font-size: 0.82rem; padding: 8px; background: rgba(239,68,68,0.06); cursor: pointer; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%;">
+                    <i class="fa-solid fa-flag" style="color: #ef4444;"></i>
+                    <span>Report Suspicious or Fake Listing</span>
+                </button>
             </div>
         `;
 
         jobDetailsModal.classList.add('active');
+
+        document.getElementById('btn-report-job-modal')?.addEventListener('click', async () => {
+            const user = window.auth?.getCurrentUser();
+            const reason = prompt('Please enter the reason for reporting this vacancy (e.g., registration fee demanded, suspicious recruiter, fake package):');
+            if (!reason || !reason.trim()) return;
+
+            if (window.db && typeof window.db.createReport === 'function') {
+                await window.db.createReport({
+                    type: 'Job',
+                    reportedItem: `${job.title} (${job.company})`,
+                    reporter: user?.email || 'jobseeker@smartjob.com',
+                    reason: reason.trim(),
+                    details: `Candidate grievance logged from public job board against vacancy "${job.title}" by ${job.company}. Issue: ${reason.trim()}`
+                });
+                showToast('Grievance report submitted directly to Admin for real-time review.', 'success');
+                jobDetailsModal.classList.remove('active');
+            }
+        });
 
         document.getElementById('btn-submit-job-application')?.addEventListener('click', async () => {
             const user = window.auth?.getCurrentUser();
